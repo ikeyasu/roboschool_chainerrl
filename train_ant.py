@@ -27,7 +27,7 @@ from chainerrl import policy
 from chainerrl import q_functions
 from chainerrl import replay_buffer
 
-gym.undo_logger_setup()  # undo Gym's logger setup and configure things manually.
+import qfunc
 
 
 def make_env(args):
@@ -119,7 +119,7 @@ def main():
             bound_action=True,
             normalize_input=True)
     else:
-        q_func = q_functions.FCSAQFunction(
+        q_func = qfunc.FCSAQFunction(
             obs_size, action_size,
             n_hidden_channels=args.n_hidden_channels,
             n_hidden_layers=args.n_hidden_layers)
