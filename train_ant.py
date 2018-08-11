@@ -5,6 +5,7 @@ Inspired from https://github.com/uchibe/ai-bs-summer17/blob/master/roboschool/tr
 """
 import argparse
 import sys
+import os
 
 import chainer
 from chainer import optimizers
@@ -16,6 +17,7 @@ from gym import spaces
 import gym.wrappers
 import numpy as np
 
+import chainerrl
 from chainerrl.agents.ddpg import DDPG
 from chainerrl.agents.ddpg import DDPGModel
 from chainerrl import experiments
@@ -127,6 +129,15 @@ def main():
             n_hidden_layers=args.n_hidden_layers,
             min_action=action_space.low, max_action=action_space.high,
             bound_action=True)
+
+    # draw computation graph
+    fake_obs = chainer.Variable(np.zeros(obs_size, dtype=np.float32)[None], name='observation')
+    fake_action = chainer.Variable(np.zeros(action_size, dtype=np.float32)[None], name='action')
+    with chainerrl.recurrent.state_reset(q_func): # The state of the model is reset again after drawing the graph
+        chainerrl.misc.draw_computational_graph( [q_func(fake_obs, fake_action)], os.path.join(args.outdir, 'model_q_func'))
+    with chainerrl.recurrent.state_reset(pi): # The state of the model is reset again after drawing the graph
+        chainerrl.misc.draw_computational_graph( [pi(fake_obs)], os.path.join(args.outdir, 'model_policy'))
+
     model = DDPGModel(q_func=q_func, policy=pi)
     opt_a = optimizers.Adam(alpha=args.actor_lr)
     opt_c = optimizers.Adam(alpha=args.critic_lr)
