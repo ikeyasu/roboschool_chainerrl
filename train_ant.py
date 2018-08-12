@@ -28,10 +28,17 @@ from chainerrl import q_functions
 from chainerrl import replay_buffer
 
 import qfunc
+import policy
+from env import GymFPS
+
+CAM_SIZE = (3, 64, 64)
 
 
 def make_env(args):
-    env = gym.make(args.env)
+    if args.use_fps_image:
+        env = GymFPS(gym.make(args.env), fps_window=args.fps_window, cam_size=CAM_SIZE)
+    else:
+        env = gym.make(args.env)
 
     def clip_action_filter(a):
         return np.clip(a, env.action_space.low, env.action_space.high)
@@ -84,8 +91,9 @@ def main():
     parser.add_argument('--gamma', type=float, default=0.995)
     parser.add_argument('--minibatch-size', type=int, default=200)
     parser.add_argument('--render', action='store_true')
+    parser.add_argument('--fps-window', action='store_true')
+    parser.add_argument('--use-fps-image', action='store_true')
     parser.add_argument('--demo', action='store_true')
-    parser.add_argument('--use-bn', action='store_true', default=False)
     parser.add_argument('--monitor', action='store_true')
     parser.add_argument('--reward-scale-factor', type=float, default=1e-2)
     args = parser.parse_args()
@@ -94,6 +102,8 @@ def main():
         args, args.outdir, argv=sys.argv)
     print('Output files are saved in {}'.format(args.outdir))
 
+    if args.render and args.fps_window:
+        raise Exception("Cannot specify --render and --fps-window at same time")
     if args.seed is not None:
         misc.set_random_seed(args.seed)
 
@@ -101,23 +111,24 @@ def main():
 
     timestep_limit = env.spec.tags.get(
         'wrapper_config.TimeLimit.max_episode_steps')
+    # TODO: replace env.observation_space at GymFPS
     obs_size = np.asarray(env.observation_space.shape).prod()
+    if args.use_fps_image:
+        obs_size += CAM_SIZE[0] * CAM_SIZE[1] * CAM_SIZE[2]
     action_space = env.action_space
 
     action_size = np.asarray(action_space.shape).prod()
-    if args.use_bn:
-        q_func = q_functions.FCBNLateActionSAQFunction(
-            obs_size, action_size,
+    if args.use_fps_image:
+        q_func = qfunc.CNNSAQFunction(
+            obs_size, CAM_SIZE, action_size,
             n_hidden_channels=args.n_hidden_channels,
-            n_hidden_layers=args.n_hidden_layers,
-            normalize_input=True)
-        pi = policy.FCBNDeterministicPolicy(
-            obs_size, action_size=action_size,
+            n_hidden_layers=args.n_hidden_layers)
+        pi = policy.CNNDeterministicPolicy(
+            obs_size, CAM_SIZE, action_size=action_size,
             n_hidden_channels=args.n_hidden_channels,
             n_hidden_layers=args.n_hidden_layers,
             min_action=action_space.low, max_action=action_space.high,
-            bound_action=True,
-            normalize_input=True)
+            bound_action=True)
     else:
         q_func = qfunc.FCSAQFunction(
             obs_size, action_size,
@@ -133,10 +144,11 @@ def main():
     # draw computation graph
     fake_obs = chainer.Variable(np.zeros(obs_size, dtype=np.float32)[None], name='observation')
     fake_action = chainer.Variable(np.zeros(action_size, dtype=np.float32)[None], name='action')
-    with chainerrl.recurrent.state_reset(q_func): # The state of the model is reset again after drawing the graph
-        chainerrl.misc.draw_computational_graph( [q_func(fake_obs, fake_action)], os.path.join(args.outdir, 'model_q_func'))
-    with chainerrl.recurrent.state_reset(pi): # The state of the model is reset again after drawing the graph
-        chainerrl.misc.draw_computational_graph( [pi(fake_obs)], os.path.join(args.outdir, 'model_policy'))
+    with chainerrl.recurrent.state_reset(q_func):  # The state of the model is reset again after drawing the graph
+        chainerrl.misc.draw_computational_graph([q_func(fake_obs, fake_action)],
+                                                os.path.join(args.outdir, 'model_q_func'))
+    with chainerrl.recurrent.state_reset(pi):  # The state of the model is reset again after drawing the graph
+        chainerrl.misc.draw_computational_graph([pi(fake_obs)], os.path.join(args.outdir, 'model_policy'))
 
     model = DDPGModel(q_func=q_func, policy=pi)
     opt_a = optimizers.Adam(alpha=args.actor_lr)
