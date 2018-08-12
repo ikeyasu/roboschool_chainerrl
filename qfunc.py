@@ -67,6 +67,7 @@ class CNNSAQFunction(chainer.Chain):
             supported. It is not used if n_hidden_layers is zero.
         last_wscale (float): Scale of weight initialization of the last layer.
     """
+    # TODO: GPU support
 
     def __init__(self, n_dim_obs, rgb_array_size: tuple, n_dim_action, n_hidden_channels,
                  n_hidden_layers, nonlinearity=F.relu,
