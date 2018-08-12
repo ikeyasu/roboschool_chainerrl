@@ -92,11 +92,13 @@ class CNNSAQFunction(chainer.Chain):
     def __call__(self, state, action):
         rgb_size = self.rgb_array_size
         rgb_ary_len = np.array(self.rgb_array_size).prod()
-        rgb_images = state[0][0:rgb_ary_len].reshape(1, rgb_size[0], rgb_size[1], rgb_size[2])
+        batchsize = state.shape[0]
+        rgb_images = state[:, 0:rgb_ary_len].reshape(batchsize, rgb_size[0], rgb_size[1], rgb_size[2])
         dqn_out = self.dqn_model(rgb_images)
-        other_state = state[0][rgb_ary_len:]
-        other_state = other_state.reshape(1, len(other_state))
-        h = F.concat((other_state, dqn_out, action), axis=1)
+        other_state = state[:, rgb_ary_len:]
+        other_state = other_state.reshape(batchsize, other_state.shape[1])
+        actions = F.repeat(action, batchsize, axis=0) if action.shape[0] != batchsize else action
+        h = F.concat((other_state, dqn_out, actions), axis=1)
         if self.hidden_sizes:
             for l in self.hidden_layers:
                 h = self.nonlinearity(l(h))

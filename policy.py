@@ -115,9 +115,10 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
     def __call__(self, x):
         rgb_size = self.rgb_array_size
         rgb_ary_len = np.array(self.rgb_array_size).prod()
-        rgb_images = x[0][0:rgb_ary_len].reshape(1, rgb_size[0], rgb_size[1], rgb_size[2])
-        other_input = x[0][rgb_ary_len:]
-        other_input = other_input.reshape(1, len(other_input))
+        batchsize = x.shape[0]
+        rgb_images = x[:, 0:rgb_ary_len].reshape(batchsize, rgb_size[0], rgb_size[1], rgb_size[2])
+        other_input = x[:, rgb_ary_len:]
+        other_input = other_input.reshape(batchsize, other_input.shape[1])
         dqn_out = self.dqn_model(rgb_images)
         x = F.concat((other_input, dqn_out), axis=1)
         h = self.model(x)
