@@ -1,3 +1,4 @@
+import math
 import numpy as np
 from gym import Wrapper
 from roboschool.gym_forward_walker import RoboschoolForwardWalker
@@ -10,7 +11,7 @@ from window import PygletInteractiveWindow
 class GymFPS(Wrapper):
     """Gym environment with first person camera.
     """
-    # TODO: reward is not implemented yet
+    # TODO: This reward implementation needs to be evaluated
 
     def __init__(self, env: RoboschoolForwardWalker, fps_window: bool=False, cam_size: tuple=(3, 64, 64)):
         super().__init__(env)
@@ -21,22 +22,42 @@ class GymFPS(Wrapper):
         self.window = PygletInteractiveWindow(env.unwrapped, self.cam_width, self.cam_height) if fps_window else None
         env.reset()
         self.camera = env.unwrapped.scene.cpp_world.new_camera_free_float(self.cam_width, self.cam_height , "camera")
+        x, y = self._calc_walk_target(5.0)
+        self.flag_pos = (x, y)
+        x, y, _ = env.unwrapped.body_xyz
+        self.init_pos = (x, y)
+        self.init_len = GymFPS._calc_length(self.flag_pos, self.init_pos)
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
+        # For detailed reward, you can see
+        # alive, progress, electricity_cost, joints_at_limit_cost, feet_collision_cost = self.env.unwrapped.rewards
         rgb_array, rgb_ary_len = self._render_fps()
+        x, y, _ = self.env.unwrapped.body_xyz
+        reward = self.init_len  - GymFPS._calc_length((x, y), self.flag_pos)
+        print(reward)
         obs = np.concatenate((rgb_array.reshape(rgb_ary_len), obs))
         return obs, reward, done, info
 
-    def _render_fps(self):
+    def _calc_walk_target(self, scale=2.0):
         eu = self.env.unwrapped
         x, y, z = eu.body_xyz
-        r, p, yaw = eu.body_rpy
         # 1.0 or less will trigger flag reposition by env itself
-        eu.walk_target_x = x + 2.0 * np.cos(self.target_theta)
-        eu.walk_target_y = y + 2.0 * np.sin(self.target_theta)
-        eu.flag = eu.scene.cpp_world.debug_sphere(eu.walk_target_x, eu.walk_target_y, 0.2, 0.2, 0xFF8080)
+        return x + scale * np.cos(self.target_theta), y + scale * np.sin(self.target_theta)
+
+    @staticmethod
+    def _calc_length(pos1, pos2):
+        x1, y1 = pos1
+        x2, y2 = pos2
+        return math.sqrt((math.fabs(x2 - x1) ** 2 + math.fabs(y2 - y1) ** 2))
+
+    def _render_fps(self):
+        eu = self.env.unwrapped
+        eu.walk_target_x, eu.walk_target_y = self._calc_walk_target()
+        eu.flag = eu.scene.cpp_world.debug_sphere(self.flag_pos[0], self.flag_pos[1], 0.5, 0.5, 0xFF8080)
         eu.flag_timeout = 100500
+        x, y, z = eu.body_xyz
+        r, p, yaw = eu.body_rpy
         cam_x = x + 0.2 * np.cos(yaw)
         cam_y = y + 0.2 * np.sin(yaw)
         tx = x + 2.0 * np.cos(yaw)
