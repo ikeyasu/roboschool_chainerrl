@@ -119,6 +119,7 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
         rgb_images = x[:, 0:rgb_ary_len].reshape(batchsize, rgb_size[0], rgb_size[1], rgb_size[2])
         other_input = x[:, rgb_ary_len:]
         other_input = other_input.reshape(batchsize, other_input.shape[1])
+        # TODO: need to extract ffeatures
         dqn_out = self.dqn_model(rgb_images)
         x = F.concat((other_input, dqn_out), axis=1)
         h = self.model(x)
