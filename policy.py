@@ -93,7 +93,8 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
 
         self.rgb_array_size = rgb_array_size
         rgb_ary_len = np.array(rgb_array_size).prod()
-        n_input_channels -= rgb_ary_len - 1 # 1 is output of cnn
+        dqn_out_len = 512
+        n_input_channels -= rgb_ary_len - dqn_out_len
 
         if bound_action:
             def action_filter(x):
@@ -109,7 +110,7 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
                     last_wscale=last_wscale,
                     )
         super().__init__(model=model)
-        self.dqn_model = DQN(n_input_channels=3, n_output_channels=1)
+        self.dqn_model = DQN(n_input_channels=3, n_output_channels=dqn_out_len)
         self.action_filter = action_filter
 
     def __call__(self, x):
@@ -119,7 +120,7 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
         rgb_images = x[:, 0:rgb_ary_len].reshape(batchsize, rgb_size[0], rgb_size[1], rgb_size[2])
         other_input = x[:, rgb_ary_len:]
         other_input = other_input.reshape(batchsize, other_input.shape[1])
-        # TODO: need to extract ffeatures
+        # TODO: need to evaluate features
         dqn_out = self.dqn_model(rgb_images)
         x = F.concat((other_input, dqn_out), axis=1)
         h = self.model(x)
