@@ -1,4 +1,5 @@
 import math
+import random
 import numpy as np
 from gym import Wrapper
 from roboschool.gym_forward_walker import RoboschoolForwardWalker
@@ -22,7 +23,7 @@ class GymFPS(Wrapper):
         self.window = PygletInteractiveWindow(env.unwrapped, self.cam_width, self.cam_height) if fps_window else None
         env.reset()
         self.camera = env.unwrapped.scene.cpp_world.new_camera_free_float(self.cam_width, self.cam_height , "camera")
-        x, y = self._calc_walk_target(5.0)
+        x, y = self._calc_walk_target(5.0, random.uniform(0, 2.0 * math.pi))
         self.flag_pos = (x, y)
         x, y, _ = env.unwrapped.body_xyz
         self.init_pos = (x, y)
@@ -35,15 +36,15 @@ class GymFPS(Wrapper):
         rgb_array, rgb_ary_len = self._render_fps()
         x, y, _ = self.env.unwrapped.body_xyz
         reward = self.init_len  - GymFPS._calc_length((x, y), self.flag_pos)
-        print(reward)
         obs = np.concatenate((rgb_array.reshape(rgb_ary_len), obs))
         return obs, reward, done, info
 
-    def _calc_walk_target(self, scale=2.0):
+    def _calc_walk_target(self, scale=2.0, target_theta=None):
         eu = self.env.unwrapped
         x, y, z = eu.body_xyz
         # 1.0 or less will trigger flag reposition by env itself
-        return x + scale * np.cos(self.target_theta), y + scale * np.sin(self.target_theta)
+        target_theta = self.target_theta if target_theta is None else target_theta
+        return x + scale * np.cos(target_theta), y + scale * np.sin(target_theta)
 
     @staticmethod
     def _calc_length(pos1, pos2):
