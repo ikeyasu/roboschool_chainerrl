@@ -36,7 +36,7 @@ CAM_SIZE = (3, 64, 64)
 
 def make_env(args):
     if args.use_fps_image:
-        env = GymFPS(gym.make(args.env), fps_window=args.fps_window, cam_size=CAM_SIZE)
+        env = GymFPS(gym.make(args.env), fps_window=args.fps_window, cam_size=CAM_SIZE, random_flag_pos=args.random_flag_pos)
     else:
         env = gym.make(args.env)
 
@@ -92,6 +92,7 @@ def main():
     parser.add_argument('--minibatch-size', type=int, default=200)
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--fps-window', action='store_true')
+    parser.add_argument('--random-flag-pos', action='store_true')
     parser.add_argument('--use-fps-image', action='store_true')
     parser.add_argument('--demo', action='store_true')
     parser.add_argument('--monitor', action='store_true')

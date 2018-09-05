@@ -14,7 +14,8 @@ class GymFPS(Wrapper):
     """
     # TODO: This reward implementation needs to be evaluated
 
-    def __init__(self, env: RoboschoolForwardWalker, fps_window: bool=False, cam_size: tuple=(3, 64, 64)):
+    def __init__(self, env: RoboschoolForwardWalker, fps_window: bool=False, cam_size: tuple=(3, 64, 64),
+                 random_flag_pos: bool=True):
         super().__init__(env)
         self.cam_width = cam_size[1]
         self.cam_height = cam_size[2]
@@ -23,7 +24,7 @@ class GymFPS(Wrapper):
         self.window = PygletInteractiveWindow(env.unwrapped, self.cam_width, self.cam_height) if fps_window else None
         env.reset()
         self.camera = env.unwrapped.scene.cpp_world.new_camera_free_float(self.cam_width, self.cam_height , "camera")
-        x, y = self._calc_walk_target(5.0, random.uniform(0, 2.0 * math.pi))
+        x, y = self._calc_walk_target(5.0, random.uniform(0, 2.0 * math.pi) if random_flag_pos else 0)
         self.flag_pos = (x, y)
         x, y, _ = env.unwrapped.body_xyz
         self.init_pos = (x, y)
