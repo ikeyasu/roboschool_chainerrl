@@ -70,14 +70,12 @@ class CNNSAQFunction(chainer.Chain):
     # TODO: GPU support
 
     def __init__(self, n_dim_obs, rgb_array_size: tuple, n_dim_action, n_hidden_channels,
-                 n_hidden_layers, nonlinearity=F.relu,
-                 last_wscale=1.):
+                 n_hidden_layers, nonlinearity=F.relu, last_wscale=1., dqn_out_len=512):
         self.rgb_array_size = rgb_array_size
         self.hidden_sizes = [n_hidden_channels] * n_hidden_layers
         self.nonlinearity = nonlinearity
 
         rgb_ary_len = np.array(rgb_array_size).prod()
-        dqn_out_len  = 512
         in_size = n_dim_obs - rgb_ary_len + dqn_out_len + n_dim_action
 
         super().__init__()

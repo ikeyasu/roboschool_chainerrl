@@ -88,12 +88,10 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
     def __init__(self, n_input_channels, rgb_array_size: tuple, n_hidden_layers,
                  n_hidden_channels, action_size,
                  min_action=None, max_action=None, bound_action=True,
-                 nonlinearity=F.relu,
-                 last_wscale=1.):
+                 nonlinearity=F.relu, last_wscale=1., dqn_out_len=512):
 
         self.rgb_array_size = rgb_array_size
         rgb_ary_len = np.array(rgb_array_size).prod()
-        dqn_out_len = 512
         n_input_channels -= rgb_ary_len - dqn_out_len
 
         if bound_action:

@@ -97,6 +97,7 @@ def main():
     parser.add_argument('--demo', action='store_true')
     parser.add_argument('--monitor', action='store_true')
     parser.add_argument('--reward-scale-factor', type=float, default=1e-2)
+    parser.add_argument('--dqn-out-len', type=int, default=512)
     args = parser.parse_args()
 
     args.outdir = experiments.prepare_output_dir(
@@ -123,13 +124,14 @@ def main():
         q_func = qfunc.CNNSAQFunction(
             obs_size, CAM_SIZE, action_size,
             n_hidden_channels=args.n_hidden_channels,
-            n_hidden_layers=args.n_hidden_layers)
+            n_hidden_layers=args.n_hidden_layers,
+            dqn_out_len=args.dqn_out_len)
         pi = policy.CNNDeterministicPolicy(
             obs_size, CAM_SIZE, action_size=action_size,
             n_hidden_channels=args.n_hidden_channels,
             n_hidden_layers=args.n_hidden_layers,
             min_action=action_space.low, max_action=action_space.high,
-            bound_action=True)
+            bound_action=True, dqn_out_len=args.dqn_out_len)
     else:
         q_func = qfunc.FCSAQFunction(
             obs_size, action_size,
