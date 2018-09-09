@@ -70,7 +70,7 @@ class CNNSAQFunction(chainer.Chain):
     # TODO: GPU support
 
     def __init__(self, n_dim_obs, rgb_array_size: tuple, n_dim_action, n_hidden_channels,
-                 n_hidden_layers, nonlinearity=F.relu, last_wscale=1., dqn_out_len=512):
+                 n_hidden_layers, nonlinearity=F.relu, last_wscale=1., dqn_out_len=512, gpu=-1):
         self.rgb_array_size = rgb_array_size
         self.hidden_sizes = [n_hidden_channels] * n_hidden_layers
         self.nonlinearity = nonlinearity
@@ -81,6 +81,8 @@ class CNNSAQFunction(chainer.Chain):
         super().__init__()
         with self.init_scope():
             self.dqn_model = DQN(n_input_channels=3, n_output_channels=dqn_out_len)
+            if gpu > -1:
+                self.dqn_model.to_gpu(gpu)
             hidden_layers = [L.Linear(in_size, self.hidden_sizes[0])]
             for hin, hout in zip(self.hidden_sizes, self.hidden_sizes[1:]):
                 hidden_layers.append(L.Linear(hin, hout))
@@ -94,7 +96,7 @@ class CNNSAQFunction(chainer.Chain):
         batchsize = state.shape[0]
         rgb_images = state[:, 0:rgb_ary_len].reshape(batchsize, rgb_size[0], rgb_size[1], rgb_size[2])
         # TODO: need to evaluate features
-        dqn_out = self.dqn_model(rgb_images)
+        dqn_out = self.dqn_model(self.xp.asarray(rgb_images, dtype=self.xp.float32))
         other_state = state[:, rgb_ary_len:]
         other_state = other_state.reshape(batchsize, other_state.shape[1])
         actions = F.repeat(action, batchsize, axis=0) if action.shape[0] != batchsize else action

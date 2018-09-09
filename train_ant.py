@@ -4,6 +4,8 @@ LICENSE: MIT License
 Inspired from https://github.com/uchibe/ai-bs-summer17/blob/master/roboschool/train_ddpg_gym.py
 """
 import argparse
+
+import cupy
 import sys
 import os
 
@@ -24,7 +26,6 @@ from chainerrl import experiments
 from chainerrl import explorers
 from chainerrl import misc
 from chainerrl import policy
-from chainerrl import q_functions
 from chainerrl import replay_buffer
 
 import qfunc
@@ -32,6 +33,8 @@ import policy
 from env import GymFPS
 
 CAM_SIZE = (3, 64, 64)
+
+xp = np
 
 
 def make_env(args):
@@ -100,6 +103,10 @@ def main():
     parser.add_argument('--dqn-out-len', type=int, default=512)
     args = parser.parse_args()
 
+    if args.gpu > -1:
+        global xp
+        xp = cupy
+
     args.outdir = experiments.prepare_output_dir(
         args, args.outdir, argv=sys.argv)
     print('Output files are saved in {}'.format(args.outdir))
@@ -125,13 +132,13 @@ def main():
             obs_size, CAM_SIZE, action_size,
             n_hidden_channels=args.n_hidden_channels,
             n_hidden_layers=args.n_hidden_layers,
-            dqn_out_len=args.dqn_out_len)
+            dqn_out_len=args.dqn_out_len, gpu=args.gpu)
         pi = policy.CNNDeterministicPolicy(
             obs_size, CAM_SIZE, action_size=action_size,
             n_hidden_channels=args.n_hidden_channels,
             n_hidden_layers=args.n_hidden_layers,
             min_action=action_space.low, max_action=action_space.high,
-            bound_action=True, dqn_out_len=args.dqn_out_len)
+            bound_action=True, dqn_out_len=args.dqn_out_len, gpu=args.gpu)
     else:
         q_func = qfunc.FCSAQFunction(
             obs_size, action_size,
@@ -143,10 +150,16 @@ def main():
             n_hidden_layers=args.n_hidden_layers,
             min_action=action_space.low, max_action=action_space.high,
             bound_action=True)
+    if args.gpu > -1:
+        q_func.to_gpu(args.gpu)
+        pi.to_gpu(args.gpu)
+    else:
+        q_func.to_cpu()
+        pi.to_cpu()
 
     # draw computation graph
-    fake_obs = chainer.Variable(np.zeros(obs_size, dtype=np.float32)[None], name='observation')
-    fake_action = chainer.Variable(np.zeros(action_size, dtype=np.float32)[None], name='action')
+    fake_obs = xp.asarray(np.zeros(obs_size, dtype=np.float32)[None])
+    fake_action = xp.asarray(np.zeros(action_size, dtype=np.float32)[None])
     with chainerrl.recurrent.state_reset(q_func):  # The state of the model is reset again after drawing the graph
         chainerrl.misc.draw_computational_graph([q_func(fake_obs, fake_action)],
                                                 os.path.join(args.outdir, 'model_q_func'))

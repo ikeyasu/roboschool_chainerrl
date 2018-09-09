@@ -1,8 +1,7 @@
 import chainer
 import numpy as np
 from chainer import functions as F
-from chainer import links as L
-from chainerrl import distribution, links
+from chainerrl import distribution
 from chainerrl.functions.bound_by_tanh import bound_by_tanh
 from chainerrl.links import MLP
 from chainerrl.policy import Policy
@@ -88,7 +87,7 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
     def __init__(self, n_input_channels, rgb_array_size: tuple, n_hidden_layers,
                  n_hidden_channels, action_size,
                  min_action=None, max_action=None, bound_action=True,
-                 nonlinearity=F.relu, last_wscale=1., dqn_out_len=512):
+                 nonlinearity=F.relu, last_wscale=1., dqn_out_len=512, gpu=-1):
 
         self.rgb_array_size = rgb_array_size
         rgb_ary_len = np.array(rgb_array_size).prod()
@@ -109,6 +108,8 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
                     )
         super().__init__(model=model)
         self.dqn_model = DQN(n_input_channels=3, n_output_channels=dqn_out_len)
+        if gpu > -1:
+            self.dqn_model.to_gpu(gpu)
         self.action_filter = action_filter
 
     def __call__(self, x):
@@ -119,7 +120,7 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
         other_input = x[:, rgb_ary_len:]
         other_input = other_input.reshape(batchsize, other_input.shape[1])
         # TODO: need to evaluate features
-        dqn_out = self.dqn_model(rgb_images)
+        dqn_out = self.dqn_model(self.xp.asarray(rgb_images, dtype=self.xp.float32))
         x = F.concat((other_input, dqn_out), axis=1)
         h = self.model(x)
         # Action filter
