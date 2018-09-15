@@ -5,7 +5,6 @@ Inspired from https://github.com/uchibe/ai-bs-summer17/blob/master/roboschool/tr
 """
 import argparse
 
-import cupy
 import sys
 import os
 
@@ -105,6 +104,7 @@ def main():
 
     if args.gpu > -1:
         global xp
+        import cupy
         xp = cupy
 
     args.outdir = experiments.prepare_output_dir(
