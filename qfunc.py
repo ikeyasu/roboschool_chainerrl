@@ -95,8 +95,8 @@ class CNNSAQFunction(chainer.Chain):
         batchsize = state.shape[0]
         rgb_images = state[:, 0:rgb_ary_len].reshape(batchsize, rgb_size[0], rgb_size[1], rgb_size[2])
         # TODO: need to evaluate features
-        cnn_out = self.cnn_model.extract(rgb_images, layers=["fc7"])["fc7"]
-        other_state = state[:, rgb_ary_len:]
+        cnn_out = self.cnn_model(rgb_images, layers=["fc7"])["fc7"].data
+        other_state = self.xp.asarray(state[:, rgb_ary_len:])
         other_state = other_state.reshape(batchsize, other_state.shape[1])
         actions = F.repeat(action, batchsize, axis=0) if action.shape[0] != batchsize else action
         h = F.concat((other_state, cnn_out, actions), axis=1)

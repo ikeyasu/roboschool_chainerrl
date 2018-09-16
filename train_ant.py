@@ -31,7 +31,7 @@ import qfunc
 import policy
 from env import GymFPS
 
-CAM_SIZE = (3, 64, 64)
+CAM_SIZE = (3, 224, 224)
 
 xp = np
 
@@ -158,13 +158,13 @@ def main():
         pi.to_cpu()
 
     # draw computation graph
-    fake_obs = xp.asarray(np.zeros(obs_size, dtype=np.float32)[None])
-    fake_action = xp.asarray(np.zeros(action_size, dtype=np.float32)[None])
-    with chainerrl.recurrent.state_reset(q_func):  # The state of the model is reset again after drawing the graph
-        chainerrl.misc.draw_computational_graph([q_func(fake_obs, fake_action)],
-                                                os.path.join(args.outdir, 'model_q_func'))
-    with chainerrl.recurrent.state_reset(pi):  # The state of the model is reset again after drawing the graph
-        chainerrl.misc.draw_computational_graph([pi(fake_obs)], os.path.join(args.outdir, 'model_policy'))
+    #fake_obs = np.zeros(obs_size, dtype=np.float32)[None]
+    #fake_action = xp.asarray(np.zeros(action_size, dtype=np.float32)[None])
+    #with chainerrl.recurrent.state_reset(q_func):  # The state of the model is reset again after drawing the graph
+    #    chainerrl.misc.draw_computational_graph([q_func(fake_obs, fake_action)],
+    #                                            os.path.join(args.outdir, 'model_q_func'))
+    #with chainerrl.recurrent.state_reset(pi):  # The state of the model is reset again after drawing the graph
+    #    chainerrl.misc.draw_computational_graph([pi(fake_obs)], os.path.join(args.outdir, 'model_policy'))
 
     model = DDPGModel(q_func=q_func, policy=pi)
     opt_a = optimizers.Adam(alpha=args.actor_lr)

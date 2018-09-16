@@ -116,10 +116,10 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
         rgb_ary_len = np.array(self.rgb_array_size).prod()
         batchsize = x.shape[0]
         rgb_images = x[:, 0:rgb_ary_len].reshape(batchsize, rgb_size[0], rgb_size[1], rgb_size[2])
-        other_input = x[:, rgb_ary_len:]
+        cnn_out = self.cnn_model(rgb_images, layers=["fc7"])["fc7"].data
+        other_input = self.xp.asarray(x[:, rgb_ary_len:])
         other_input = other_input.reshape(batchsize, other_input.shape[1])
         # TODO: need to evaluate features
-        cnn_out = self.cnn_model.extract(rgb_images, layers=["fc7"])["fc7"]
         x = F.concat((other_input, cnn_out), axis=1)
         h = self.model(x)
         # Action filter
