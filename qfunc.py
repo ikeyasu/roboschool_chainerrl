@@ -2,10 +2,9 @@ import chainer
 import numpy as np
 from chainer import functions as F
 from chainer import links as L
+from chainer.links import VGG16Layers
 
 from chainerrl.initializers import LeCunNormal
-
-from dqn import DQN
 
 
 class FCSAQFunction(chainer.Chain):
@@ -70,24 +69,24 @@ class CNNSAQFunction(chainer.Chain):
     # TODO: GPU support
 
     def __init__(self, n_dim_obs, rgb_array_size: tuple, n_dim_action, n_hidden_channels,
-                 n_hidden_layers, nonlinearity=F.relu, last_wscale=1., dqn_out_len=512, gpu=-1):
+                 n_hidden_layers, nonlinearity=F.relu, last_wscale=1., gpu=-1):
         self.rgb_array_size = rgb_array_size
         self.hidden_sizes = [n_hidden_channels] * n_hidden_layers
         self.nonlinearity = nonlinearity
 
         rgb_ary_len = np.array(rgb_array_size).prod()
-        in_size = n_dim_obs - rgb_ary_len + dqn_out_len + n_dim_action
+        self.cnn_model = VGG16Layers()
+        if gpu > -1:
+            self.cnn_model.to_gpu(gpu)
+        in_size = n_dim_obs - rgb_ary_len + self.cnn_model.fc7.W.shape[0] + n_dim_action
 
         super().__init__()
         with self.init_scope():
-            self.dqn_model = DQN(n_input_channels=3, n_output_channels=dqn_out_len)
-            if gpu > -1:
-                self.dqn_model.to_gpu(gpu)
             hidden_layers = [L.Linear(in_size, self.hidden_sizes[0])]
             for hin, hout in zip(self.hidden_sizes, self.hidden_sizes[1:]):
                 hidden_layers.append(L.Linear(hin, hout))
             self.hidden_layers = chainer.ChainList(*hidden_layers)
-            self.output = L.Linear(self.hidden_sizes[-1], out_size=1,
+            self.output = L.Linear(self.hidden_sizes[0], out_size=1,
                                    initialW=LeCunNormal(last_wscale))
 
     def __call__(self, state, action):
@@ -96,11 +95,11 @@ class CNNSAQFunction(chainer.Chain):
         batchsize = state.shape[0]
         rgb_images = state[:, 0:rgb_ary_len].reshape(batchsize, rgb_size[0], rgb_size[1], rgb_size[2])
         # TODO: need to evaluate features
-        dqn_out = self.dqn_model(self.xp.asarray(rgb_images, dtype=self.xp.float32))
+        cnn_out = self.cnn_model.extract(rgb_images, layers=["fc7"])["fc7"]
         other_state = state[:, rgb_ary_len:]
         other_state = other_state.reshape(batchsize, other_state.shape[1])
         actions = F.repeat(action, batchsize, axis=0) if action.shape[0] != batchsize else action
-        h = F.concat((other_state, dqn_out, actions), axis=1)
+        h = F.concat((other_state, cnn_out, actions), axis=1)
         if self.hidden_sizes:
             for l in self.hidden_layers:
                 h = self.nonlinearity(l(h))

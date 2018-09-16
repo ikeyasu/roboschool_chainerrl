@@ -132,13 +132,13 @@ def main():
             obs_size, CAM_SIZE, action_size,
             n_hidden_channels=args.n_hidden_channels,
             n_hidden_layers=args.n_hidden_layers,
-            dqn_out_len=args.dqn_out_len, gpu=args.gpu)
+            gpu=args.gpu)
         pi = policy.CNNDeterministicPolicy(
             obs_size, CAM_SIZE, action_size=action_size,
             n_hidden_channels=args.n_hidden_channels,
             n_hidden_layers=args.n_hidden_layers,
             min_action=action_space.low, max_action=action_space.high,
-            bound_action=True, dqn_out_len=args.dqn_out_len, gpu=args.gpu)
+            bound_action=True, gpu=args.gpu)
     else:
         q_func = qfunc.FCSAQFunction(
             obs_size, action_size,

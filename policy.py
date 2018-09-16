@@ -1,13 +1,12 @@
 import chainer
 import numpy as np
 from chainer import functions as F
+from chainer.links import VGG16Layers
 from chainerrl import distribution
 from chainerrl.functions.bound_by_tanh import bound_by_tanh
 from chainerrl.links import MLP
 from chainerrl.policy import Policy
 from chainerrl.recurrent import RecurrentChainMixin
-
-from dqn import DQN
 
 
 class FCDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
@@ -87,11 +86,14 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
     def __init__(self, n_input_channels, rgb_array_size: tuple, n_hidden_layers,
                  n_hidden_channels, action_size,
                  min_action=None, max_action=None, bound_action=True,
-                 nonlinearity=F.relu, last_wscale=1., dqn_out_len=512, gpu=-1):
+                 nonlinearity=F.relu, last_wscale=1., gpu=-1):
 
         self.rgb_array_size = rgb_array_size
         rgb_ary_len = np.array(rgb_array_size).prod()
-        n_input_channels -= rgb_ary_len - dqn_out_len
+        self.cnn_model = VGG16Layers()
+        if gpu > -1:
+            self.cnn_model.to_gpu(gpu)
+        n_input_channels -= rgb_ary_len - self.cnn_model.fc7.W.shape[0]
 
         if bound_action:
             def action_filter(x):
@@ -107,9 +109,6 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
                     last_wscale=last_wscale,
                     )
         super().__init__(model=model)
-        self.dqn_model = DQN(n_input_channels=3, n_output_channels=dqn_out_len)
-        if gpu > -1:
-            self.dqn_model.to_gpu(gpu)
         self.action_filter = action_filter
 
     def __call__(self, x):
@@ -120,8 +119,8 @@ class CNNDeterministicPolicy(chainer.Chain, Policy, RecurrentChainMixin):
         other_input = x[:, rgb_ary_len:]
         other_input = other_input.reshape(batchsize, other_input.shape[1])
         # TODO: need to evaluate features
-        dqn_out = self.dqn_model(self.xp.asarray(rgb_images, dtype=self.xp.float32))
-        x = F.concat((other_input, dqn_out), axis=1)
+        cnn_out = self.cnn_model.extract(rgb_images, layers=["fc7"])["fc7"]
+        x = F.concat((other_input, cnn_out), axis=1)
         h = self.model(x)
         # Action filter
         if self.action_filter is not None:
