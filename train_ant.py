@@ -13,6 +13,8 @@ from chainer import optimizers
 import gym
 # noinspection PyUnresolvedReferences
 import roboschool
+from chainerrl.policies import FCDeterministicPolicy
+from chainerrl.q_functions import FCSAQFunction
 
 from gym import spaces
 import gym.wrappers
@@ -24,23 +26,14 @@ from chainerrl.agents.ddpg import DDPGModel
 from chainerrl import experiments
 from chainerrl import explorers
 from chainerrl import misc
-from chainerrl import policy
 from chainerrl import replay_buffer
 
-import qfunc
-import policy
-from env import GymFPS
-
-CAM_SIZE = (3, 64, 64)
 
 xp = np
 
 
 def make_env(args):
-    if args.use_fps_image:
-        env = GymFPS(gym.make(args.env), fps_window=args.fps_window, cam_size=CAM_SIZE, random_flag_pos=args.random_flag_pos)
-    else:
-        env = gym.make(args.env)
+    env = gym.make(args.env)
 
     def clip_action_filter(a):
         return np.clip(a, env.action_space.low, env.action_space.high)
@@ -93,17 +86,14 @@ def main():
     parser.add_argument('--gamma', type=float, default=0.995)
     parser.add_argument('--minibatch-size', type=int, default=200)
     parser.add_argument('--render', action='store_true')
-    parser.add_argument('--fps-window', action='store_true')
-    parser.add_argument('--random-flag-pos', action='store_true')
-    parser.add_argument('--use-fps-image', action='store_true')
     parser.add_argument('--demo', action='store_true')
     parser.add_argument('--monitor', action='store_true')
     parser.add_argument('--reward-scale-factor', type=float, default=1e-2)
-    parser.add_argument('--dqn-out-len', type=int, default=512)
     args = parser.parse_args()
 
     if args.gpu > -1:
         global xp
+        # noinspection PyUnresolvedReferences
         import cupy
         xp = cupy
 
@@ -111,8 +101,6 @@ def main():
         args, args.outdir, argv=sys.argv)
     print('Output files are saved in {}'.format(args.outdir))
 
-    if args.render and args.fps_window:
-        raise Exception("Cannot specify --render and --fps-window at same time")
     if args.seed is not None:
         misc.set_random_seed(args.seed)
 
@@ -120,36 +108,20 @@ def main():
 
     timestep_limit = env.spec.tags.get(
         'wrapper_config.TimeLimit.max_episode_steps')
-    # TODO: replace env.observation_space at GymFPS
     obs_size = np.asarray(env.observation_space.shape).prod()
-    if args.use_fps_image:
-        obs_size += CAM_SIZE[0] * CAM_SIZE[1] * CAM_SIZE[2]
     action_space = env.action_space
 
     action_size = np.asarray(action_space.shape).prod()
-    if args.use_fps_image:
-        q_func = qfunc.CNNSAQFunction(
-            obs_size, CAM_SIZE, action_size,
-            n_hidden_channels=args.n_hidden_channels,
-            n_hidden_layers=args.n_hidden_layers,
-            dqn_out_len=args.dqn_out_len, gpu=args.gpu)
-        pi = policy.CNNDeterministicPolicy(
-            obs_size, CAM_SIZE, action_size=action_size,
-            n_hidden_channels=args.n_hidden_channels,
-            n_hidden_layers=args.n_hidden_layers,
-            min_action=action_space.low, max_action=action_space.high,
-            bound_action=True, dqn_out_len=args.dqn_out_len, gpu=args.gpu)
-    else:
-        q_func = qfunc.FCSAQFunction(
-            obs_size, action_size,
-            n_hidden_channels=args.n_hidden_channels,
-            n_hidden_layers=args.n_hidden_layers)
-        pi = policy.FCDeterministicPolicy(
-            obs_size, action_size=action_size,
-            n_hidden_channels=args.n_hidden_channels,
-            n_hidden_layers=args.n_hidden_layers,
-            min_action=action_space.low, max_action=action_space.high,
-            bound_action=True)
+    q_func = FCSAQFunction(
+        obs_size, action_size,
+        n_hidden_channels=args.n_hidden_channels,
+        n_hidden_layers=args.n_hidden_layers)
+    pi = FCDeterministicPolicy(
+        obs_size, action_size=action_size,
+        n_hidden_channels=args.n_hidden_channels,
+        n_hidden_layers=args.n_hidden_layers,
+        min_action=action_space.low, max_action=action_space.high,
+        bound_action=True)
     if args.gpu > -1:
         q_func.to_gpu(args.gpu)
         pi.to_gpu(args.gpu)
