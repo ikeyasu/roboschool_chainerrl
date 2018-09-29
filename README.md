@@ -12,6 +12,34 @@ Demo
 ![animation](doc/demo1.gif "demo animation")
 
 
+How to Run
+----------
+
+On Docker instance (nvidia-docker2)
+
+```
+$ docker run --runtime=nvidia -it -p 6080:6080 ikeyasu/roboschool:latest
+```
+
+You can see screen on http://localhost:6080
+
+![vnc screen](https://github.com/ikeyasu/docker-roboschool/raw/latest/doc/screen1.png "vnc screen")
+
+### Training
+
+```
+$ python3 train.py --gpu 0 --steps=2000000 --minibatch-size=8 --env=RoboschoolAnt-v1
+```
+
+### Demo
+
+```
+$ python train.py --load=<Path to dir of model.npz> --render --demo --gpu=-1
+
+```
+
+`Path to dir of model.npz` is like "out/20180907T002102.478797/2000000_finish/".
+
 License
 ======
 
