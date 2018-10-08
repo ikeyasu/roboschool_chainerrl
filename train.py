@@ -28,12 +28,18 @@ from chainerrl import explorers
 from chainerrl import misc
 from chainerrl import replay_buffer
 
+from env import urdf_env
 
 xp = np
 
 
 def make_env(args):
-    env = gym.make(args.env)
+    if args.urdf:
+        # TODO: foot_list
+        env = urdf_env.make(model_urdf=os.path.abspath(args.urdf),
+                            robot_name="base_link", footlist=[], action_dim=args.action_dim)
+    else:
+        env = gym.make(args.env)
 
     def clip_action_filter(a):
         return np.clip(a, env.action_space.low, env.action_space.high)
@@ -56,13 +62,14 @@ def make_env(args):
     return env
 
 
-def main():
+def main(parser=argparse.ArgumentParser()):
     import logging
     logging.basicConfig(level=logging.WARN)
 
-    parser = argparse.ArgumentParser()
     parser.add_argument('--outdir', type=str, default='out')
     parser.add_argument('--env', type=str, default='RoboschoolAnt-v1')
+    parser.add_argument('--urdf', type=str, default=None)
+    parser.add_argument('--action-dim', type=int, default=-1)
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--final-exploration-steps',
@@ -90,6 +97,10 @@ def main():
     parser.add_argument('--monitor', action='store_true')
     parser.add_argument('--reward-scale-factor', type=float, default=1e-2)
     args = parser.parse_args()
+
+    if args.urdf is not None:
+        if args.action_dim <= 0:
+            raise Exception("--action-dim is necessary when using --urdf")
 
     if args.gpu > -1:
         global xp
