@@ -10,6 +10,8 @@ import gym, gym.spaces, gym.utils, gym.utils.seeding
 import numpy as np
 import os, sys
 
+from env.stadium_scene import CustomStadiumScene
+
 
 class RoboschoolForwardWalkerServo(SharedMemoryClientEnv):
     def __init__(self, power):
@@ -24,7 +26,7 @@ class RoboschoolForwardWalkerServo(SharedMemoryClientEnv):
         self.camera_follow = 0
 
     def create_single_player_scene(self):
-        return SinglePlayerStadiumScene(gravity=9.8, timestep=0.0165/4, frame_skip=4)
+        return CustomStadiumScene(gravity=9.8, timestep=0.0165/4, frame_skip=4)
 
     def robot_specific_reset(self):
         for j in self.ordered_joints:
