@@ -50,7 +50,7 @@ class RoboschoolForwardWalkerServo(SharedMemoryClientEnv):
             #j.set_motor_torque( self.power*j.power_coef*float(np.clip(a[n], -1, +1)) )
             lower, upper = j.limits()[0:2]
             #j.set_servo_target(self.power*j.power_coef*float(np.clip(a[n], -1, +1)), 0.1, 0.1, 1)
-            j.set_servo_target(float(np.clip(a[n], lower, upper)), 0.1, 3.0, 4)
+            j.set_servo_target(float(np.clip(a[n], lower, upper)), 0.1, 3.0, 40)
 
     def calc_state(self):
         j = np.array([j.current_relative_position() for j in self.ordered_joints], dtype=np.float32).flatten()

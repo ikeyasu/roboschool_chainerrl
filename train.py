@@ -28,7 +28,7 @@ from chainerrl import explorers
 from chainerrl import misc
 from chainerrl import replay_buffer
 
-from env import urdf_env
+from env import urdf_env, mjcf_env
 
 xp = np
 
@@ -38,6 +38,10 @@ def make_env(args):
         # TODO: foot_list
         env = urdf_env.make(model_urdf=os.path.abspath(args.urdf),
                             robot_name="base_link", footlist=[], action_dim=args.action_dim)
+    elif args.mjcf:
+        # TODO: foot_list
+        env = mjcf_env.make(model_xml=os.path.abspath(args.mjcf),
+                            robot_name="torso", footlist=[], action_dim=args.action_dim)
     else:
         env = gym.make(args.env)
 
@@ -69,6 +73,7 @@ def main(parser=argparse.ArgumentParser()):
     parser.add_argument('--outdir', type=str, default='out')
     parser.add_argument('--env', type=str, default='RoboschoolAnt-v1')
     parser.add_argument('--urdf', type=str, default=None)
+    parser.add_argument('--mjcf', type=str, default=None, help="MuJoCo XML model")
     parser.add_argument('--action-dim', type=int, default=-1)
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--gpu', type=int, default=0)
@@ -101,6 +106,9 @@ def main(parser=argparse.ArgumentParser()):
     if args.urdf is not None:
         if args.action_dim <= 0:
             raise Exception("--action-dim is necessary when using --urdf")
+    if args.mjcf is not None:
+        if args.action_dim <= 0:
+            raise Exception("--action-dim is necessary when using --mjcf")
 
     if args.gpu > -1:
         global xp
