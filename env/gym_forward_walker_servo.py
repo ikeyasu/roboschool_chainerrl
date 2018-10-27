@@ -19,7 +19,7 @@ class RoboschoolForwardWalkerServo(SharedMemoryClientEnv):
         self.camera_x = 0
         self.walk_target_x = 1e3  # kilometer away
         self.walk_target_y = 0
-        self.start_pos_x, self.start_pos_y, self.start_pos_z = 0, 0, -0.6
+        self.start_pos_x, self.start_pos_y, self.start_pos_z = 0, 0, -0.5
         self.camera_x = 0
         self.camera_y = 4.3
         self.camera_z = 45.0
