@@ -38,7 +38,7 @@ def _robo_init(self, model_xml, robot_name, action_dim):
 
 def _robot_specific_reset(self):
     RoboschoolForwardWalkerServo.robot_specific_reset(self)
-    self.set_initial_orientation(yaw_center=np.math.pi / 2.0, yaw_random_spread=np.pi)
+    self.set_initial_orientation(yaw_center=0, yaw_random_spread=np.pi)
     #self.head = self.parts["head"]
 
 
