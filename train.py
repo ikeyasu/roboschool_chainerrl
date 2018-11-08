@@ -28,7 +28,7 @@ from chainerrl import explorers
 from chainerrl import misc
 from chainerrl import replay_buffer
 
-from env import urdf_env, mjcf_env
+from env import urdf_env, mjcf_env, servo_env
 
 xp = np
 
@@ -44,6 +44,9 @@ def make_env(args):
                             robot_name="torso", footlist=[], action_dim=args.action_dim)
     else:
         env = gym.make(args.env)
+
+    if args.physical_with_sim:
+        env = servo_env.make(env)
 
     def clip_action_filter(a):
         return np.clip(a, env.action_space.low, env.action_space.high)
@@ -74,6 +77,7 @@ def main(parser=argparse.ArgumentParser()):
     parser.add_argument('--env', type=str, default='RoboschoolAnt-v1')
     parser.add_argument('--urdf', type=str, default=None)
     parser.add_argument('--mjcf', type=str, default=None, help="MuJoCo XML model")
+    parser.add_argument('--physical-with-sim', action='store_true', help="Physical environment with simulator")
     parser.add_argument('--action-dim', type=int, default=-1)
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--gpu', type=int, default=0)
