@@ -1,7 +1,14 @@
 # Copyright (c) 2018 ikeyasu (http://ikeyasu.com)
+import json
+from typing import List, Tuple
+
 import gym
 import numpy as np
 from gym.envs.registration import register
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+
+# TODO: Use http.server https://docs.python.jp/3/library/http.server.html
 
 
 # TODO: not used yet
@@ -23,15 +30,30 @@ class PhysicalRobotServo(gym.Env):
 
 
 class PhysicalWrapper(gym.Env):
-    env = None
+    env: gym.Env
+    latest_action: List[int]
 
-    def __init__(self, env):
+    def __init__(self, env: gym.Env, server_address: Tuple[str, int] = ("localhost", 8080)):
+        self.latest_action = []
         self.env = env
         self.action_space = self.env.action_space
         self.observation_space = self.env.observation_space
         self.reward_range = self.env.reward_range
         self.metadata = self.env.metadata
         self._warn_double_wrap()
+
+        outer_self = self
+
+        # noinspection PyPep8Naming
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(outer_self.latest_action).encode())
+
+        self.httpd = HTTPServer(server_address, Handler)
+        print("HTTP server is started: http://{}:{}".format(server_address[0], server_address[1]))
 
     @classmethod
     def class_name(cls):
@@ -47,7 +69,10 @@ class PhysicalWrapper(gym.Env):
             else:
                 break
 
-    def step(self, action):
+    def step(self, action: np.ndarray):
+        self.latest_action = action.tolist()
+        self.httpd.handle_request()
+        # TODO: retrieve status
         if hasattr(self, "_step"):
             self.step = self._step
             return self.step(action)
@@ -89,13 +114,9 @@ class PhysicalWrapper(gym.Env):
         return self.env.spec
 
 
-def _init(self, simenv):
-    PhysicalWrapper.__init__(self, simenv)
-
-
-def make(simenv=None):
+def make(simenv: gym.Env, server_address: Tuple[str, int] = ("localhost", 8080)):
     robot = type("Robo", (PhysicalWrapper,), {
-        "__init__": lambda self: _init(self, simenv),
+        "__init__": lambda self: PhysicalWrapper.__init__(self, simenv, server_address=server_address)
     })
     register(
         id='PhysicalWithSimRobotServo-v1',

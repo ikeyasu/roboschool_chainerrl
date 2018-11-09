@@ -46,7 +46,7 @@ def make_env(args):
         env = gym.make(args.env)
 
     if args.physical_with_sim:
-        env = servo_env.make(env)
+        env = servo_env.make(env, (args.server_address, args.server_port))
 
     def clip_action_filter(a):
         return np.clip(a, env.action_space.low, env.action_space.high)
@@ -78,6 +78,8 @@ def main(parser=argparse.ArgumentParser()):
     parser.add_argument('--urdf', type=str, default=None)
     parser.add_argument('--mjcf', type=str, default=None, help="MuJoCo XML model")
     parser.add_argument('--physical-with-sim', action='store_true', help="Physical environment with simulator")
+    parser.add_argument('--server-address', type=str, default="localhost", help="Server setting for physical environment")
+    parser.add_argument('--server-port', type=int, default=8080, help="Server setting for physical environment")
     parser.add_argument('--action-dim', type=int, default=-1)
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--gpu', type=int, default=0)
