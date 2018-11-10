@@ -28,21 +28,27 @@ DEGREE_STEP = (1.45 - 0.5) / 90.0
 
 # Etc
 SERVO_COUNT = 8
+DEBUG = True
 
+
+def _dp(msg):
+    if DEBUG:
+        print(msg)
 
 # noinspection PyMethodMayBeStatic
 class ServoDebug:
     def __init__(self, servo_count: int):
-        print("Servo init:servo_count={}".format(servo_count))
+        _dp("Servo init:servo_count={}".format(servo_count))
         pass
 
     def rotate(self, channel: int, degree: float):
-        print("Servo rotate: channel={}, degree={}".format(channel, degree))
+        _dp("Servo rotate: channel={}, degree={}".format(channel, degree))
 
 
 class Servo:
 
     def __init__(self, servo_count: int):
+        _dp("Servo init:servo_count={}".format(servo_count))
         import smbus
         self.bus = smbus.SMBus(1)  # the chip is on bus 1 of the available I2C buses
         self.bus.write_byte_data(CHIP_ADDRESS, 0, 0x20)  # enable the chip
@@ -59,6 +65,7 @@ class Servo:
         self.bus.write_word_data(CHIP_ADDRESS, end_address, DEGREE_0)
 
     def rotate(self, channel: int, degree: float):
+        _dp("Servo rotate: channel={}, degree={}".format(channel, degree))
         start_address = CHANNEL0_START_ADDRESS + CHANNEL0_ADDRESS_INTERVAL * channel
         end_address = CHANNEL0_END_ADDRESS + CHANNEL0_ADDRESS_INTERVAL * channel
         degree_pwm = int(float(degree) * DEGREE_STEP) + DEGREE_n90
@@ -80,7 +87,7 @@ def _loop(servo, address, port):
         if actions is None:
             break
         for channel, action in enumerate(actions):
-            servo.rotate(channel, action)
+            servo.rotate(channel, action * 40.0)
         time.sleep(0.5)
 
 
