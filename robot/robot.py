@@ -70,6 +70,7 @@ def _loop(address, port):
         actions = json.loads(res)
         for channel, action in enumerate(actions):
             servo.rotate(channel, action)
+        time.sleep(0.5)
 
 
 def main(parser=argparse.ArgumentParser()):
