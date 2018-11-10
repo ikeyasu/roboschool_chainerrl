@@ -24,7 +24,8 @@ ROTATION_STEP = 5000.0 / 4095.0
 DEGREE_0 = int(1.45 * 1000 / ROTATION_STEP)  # 1.45 ms
 DEGREE_n90 = int(0.5 * 1000 / ROTATION_STEP)  # 0.5ms
 DEGREE_90 = int(2.4 * 1000 / ROTATION_STEP)  # 2.4ms
-DEGREE_STEP = (1.45 - 0.5) / 90.0
+DEGREE_STEP_MIN = 0.5
+DEGREE_STEP = (1.45 - DEGREE_STEP_MIN) / 90.0
 
 # Etc
 SERVO_COUNT = 8
@@ -65,14 +66,14 @@ class Servo:
         self.bus.write_word_data(CHIP_ADDRESS, end_address, DEGREE_0)
 
     def rotate(self, channel: int, degree: float):
-        _dp("Servo rotate: channel={}, degree={}".format(channel, degree))
         start_address = CHANNEL0_START_ADDRESS + CHANNEL0_ADDRESS_INTERVAL * channel
         end_address = CHANNEL0_END_ADDRESS + CHANNEL0_ADDRESS_INTERVAL * channel
-        degree_pwm = int(float(degree) * DEGREE_STEP) + DEGREE_0
+        degree_pwm = int(float(degree) * DEGREE_STEP + DEGREE_STEP_MIN) + DEGREE_0
 
         self.bus.write_word_data(CHIP_ADDRESS, start_address, 0)
         self.bus.write_word_data(CHIP_ADDRESS, end_address, degree_pwm)
-
+        _dp("Servo rotate: channel={}, degree={}, start_address={}, end_address={}, degree_pwm={}"
+            .format(channel, degree, start_address, end_address, degree_pwm))
 
 def _get(address, port):
     url = "http://{}:{}".format(address, port)
