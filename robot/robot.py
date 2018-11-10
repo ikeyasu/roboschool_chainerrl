@@ -6,7 +6,6 @@ import argparse
 import json
 import urllib.request
 
-import smbus
 import time
 
 # Servo chip of SparkFun Pi Servo Hut
@@ -27,10 +26,24 @@ DEGREE_n90 = int(0.5 * 1000 / ROTATION_STEP)  # 0.5ms
 DEGREE_90 = int(2.4 * 1000 / ROTATION_STEP)  # 2.4ms
 DEGREE_STEP = (1.45 - 0.5) / 90.0
 
+# Etc
+SERVO_COUNT = 8
+
+
+# noinspection PyMethodMayBeStatic
+class ServoDebug:
+    def __init__(self, servo_count: int):
+        print("Servo init:servo_count={}".format(servo_count))
+        pass
+
+    def rotate(self, channel: int, degree: float):
+        print("Servo rotate: channel={}, degree={}".format(channel, degree))
+
 
 class Servo:
 
     def __init__(self, servo_count: int):
+        import smbus
         self.bus = smbus.SMBus(1)  # the chip is on bus 1 of the available I2C buses
         self.bus.write_byte_data(CHIP_ADDRESS, 0, 0x20)  # enable the chip
         self.bus.write_byte_data(CHIP_ADDRESS, 0xfe, 0x1e)  # configure the chip for multi-byte write
@@ -58,16 +71,14 @@ def _get(address, port):
     url = "http://{}:{}".format(address, port)
     req = urllib.request.Request(url)
     with urllib.request.urlopen(req) as res:
-        return res.read()
+        return json.loads(res.read())
 
 
-def _loop(address, port):
-    servo = Servo(servo_count=8)
+def _loop(servo, address, port):
     while True:
-        res = _get(address, port)
-        if res is None:
+        actions = _get(address, port)
+        if actions is None:
             break
-        actions = json.loads(res)
         for channel, action in enumerate(actions):
             servo.rotate(channel, action)
         time.sleep(0.5)
@@ -79,8 +90,10 @@ def main(parser=argparse.ArgumentParser()):
 
     parser.add_argument('--server-address', type=str, help="Server setting")
     parser.add_argument('--server-port', type=int, default=8080, help="Server setting")
+    parser.add_argument('--local-debug', action='store_true')
     args = parser.parse_args()
-    _loop(args.server_address, args.server_port)
+    servo = Servo(servo_count=SERVO_COUNT) if not args.local_debug else ServoDebug(servo_count=SERVO_COUNT)
+    _loop(servo, args.server_address, args.server_port)
 
 
 if __name__ == '__main__':
