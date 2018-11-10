@@ -68,7 +68,7 @@ class Servo:
     def rotate(self, channel: int, degree: float):
         start_address = CHANNEL0_START_ADDRESS + CHANNEL0_ADDRESS_INTERVAL * channel
         end_address = CHANNEL0_END_ADDRESS + CHANNEL0_ADDRESS_INTERVAL * channel
-        degree_pwm = int(float(degree) * DEGREE_STEP + DEGREE_STEP_MIN) + DEGREE_0
+        degree_pwm = int((float(degree) * DEGREE_STEP + DEGREE_STEP_MIN) * 1000) + DEGREE_0
 
         self.bus.write_word_data(CHIP_ADDRESS, start_address, 0)
         self.bus.write_word_data(CHIP_ADDRESS, end_address, degree_pwm)
