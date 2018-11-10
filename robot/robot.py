@@ -99,9 +99,12 @@ def main(parser=argparse.ArgumentParser()):
     parser.add_argument('--server-address', type=str, help="Server setting")
     parser.add_argument('--server-port', type=int, default=8080, help="Server setting")
     parser.add_argument('--local-debug', action='store_true')
+    parser.add_argument('--reset-servo', action='store_true', help="Reset servo position to 0 degree and exit")
     args = parser.parse_args()
     servo = Servo(servo_count=SERVO_COUNT) if not args.local_debug else ServoDebug(servo_count=SERVO_COUNT)
-    _loop(servo, args.server_address, args.server_port)
+
+    if not args.reset_servo:
+        _loop(servo, args.server_address, args.server_port)
 
 
 if __name__ == '__main__':
