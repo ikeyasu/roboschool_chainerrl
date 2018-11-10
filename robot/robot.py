@@ -71,7 +71,7 @@ def _get(address, port):
     url = "http://{}:{}".format(address, port)
     req = urllib.request.Request(url)
     with urllib.request.urlopen(req) as res:
-        return json.loads(res.read())
+        return json.loads(res.read().decode())
 
 
 def _loop(servo, address, port):
