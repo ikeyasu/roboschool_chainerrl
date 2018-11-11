@@ -9,6 +9,8 @@ import urllib.request
 import time
 
 # Servo chip of SparkFun Pi Servo Hut
+import numpy as np
+
 CHIP_ADDRESS = 0x40  # I2C address of the PWM chip.
 
 # Channel addresses
@@ -88,11 +90,15 @@ def _get(address, port):
         return json.loads(res.read().decode())
 
 
+ACTION_OPERATION_TABLE = np.array([-1, 1, 1, -1, -1, 1, 1, -1])
+
+
 def _loop(servo, address, port):
     while True:
         actions = _get(address, port)
         if actions is None:
             break
+        actions = np.array(actions) * ACTION_OPERATION_TABLE
         for channel, action in enumerate(actions):
             servo.rotate(channel, action * 40.0)
         time.sleep(0.5)
