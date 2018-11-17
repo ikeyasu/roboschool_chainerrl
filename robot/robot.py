@@ -93,9 +93,12 @@ def _get(address, port):
 ACTION_OPERATION_TABLE = np.array([-1, 1, 1, -1, -1, 1, 1, -1])
 
 
-def _loop(servo, address, port):
+def _loop(servo, address, port, profile=False):
     while True:
+        time_start = time.time()
         actions = _get(address, port)
+        if profile:
+            print("RTT: {}".format(time.time() - time_start))
         if actions is None:
             break
         actions = np.array(actions) * ACTION_OPERATION_TABLE
@@ -112,11 +115,12 @@ def main(parser=argparse.ArgumentParser()):
     parser.add_argument('--server-port', type=int, default=8080, help="Server setting")
     parser.add_argument('--local-debug', action='store_true')
     parser.add_argument('--reset-servo', action='store_true', help="Reset servo position to 0 degree and exit")
+    parser.add_argument('--profile-rtt', action='store_true', help="Measure rount trip time")
     args = parser.parse_args()
     servo = Servo(servo_count=SERVO_COUNT) if not args.local_debug else ServoDebug(servo_count=SERVO_COUNT)
 
     if not args.reset_servo:
-        _loop(servo, args.server_address, args.server_port)
+        _loop(servo, args.server_address, args.server_port, args.profile_rtt)
 
 
 if __name__ == '__main__':
