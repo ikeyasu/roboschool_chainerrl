@@ -94,16 +94,24 @@ ACTION_OPERATION_TABLE = np.array([-1, 1, 1, -1, -1, 1, 1, -1])
 
 
 def _loop(servo, address, port, sleep=500, profile=False):
-    while True:
-        time_start = time.time()
-        actions = _get(address, port)
+    def pp(msg):
         if profile:
-            print("profile: RTT: {}".format(time.time() - time_start))
+            print(msg)
+
+    while True:
+        time_get = time.time()
+        actions = _get(address, port)
+        pp("profile: get: {}".format(time.time() - time_get))
         if actions is None:
             break
         actions = np.array(actions) * ACTION_OPERATION_TABLE
+        time_servo = time.time()
         for channel, action in enumerate(actions):
+            t = time.time()
             servo.rotate(channel, action * 40.0)
+            pp("profile: servo {}: {}".format(channel, time.time() - t))
+        pp("profile: servo all: {}".format(time.time() - time_servo))
+        pp("profile: all: {}".format(time.time() - time_get))
         time.sleep(float(sleep) / 1000.0)
 
 
