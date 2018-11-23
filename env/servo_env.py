@@ -30,8 +30,9 @@ class PhysicalRobotServo(gym.Env):
 
 
 class PhysicalWrapper(gym.Env):
-    env: gym.Env
-    latest_action: List[int]
+    # member filed hint is not supported on python 3.5
+    #env: gym.Env
+    #latest_action: List[int]
 
     def __init__(self, env: gym.Env, server_address: Tuple[str, int] = ("localhost", 8080)):
         self.latest_action = []
