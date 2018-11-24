@@ -28,7 +28,8 @@ from chainerrl import explorers
 from chainerrl import misc
 from chainerrl import replay_buffer
 
-from env import urdf_env, mjcf_env
+from agents.ddpg_step import DDPGStep
+from env import urdf_env, mjcf_env, servo_env
 
 xp = np
 
@@ -44,6 +45,9 @@ def make_env(args):
                             robot_name="torso", footlist=[], action_dim=args.action_dim)
     else:
         env = gym.make(args.env)
+
+    if args.physical_with_sim:
+        env = servo_env.make(env, (args.server_address, args.server_port))
 
     def clip_action_filter(a):
         return np.clip(a, env.action_space.low, env.action_space.high)
@@ -74,6 +78,9 @@ def main(parser=argparse.ArgumentParser()):
     parser.add_argument('--env', type=str, default='RoboschoolAnt-v1')
     parser.add_argument('--urdf', type=str, default=None)
     parser.add_argument('--mjcf', type=str, default=None, help="MuJoCo XML model")
+    parser.add_argument('--physical-with-sim', action='store_true', help="Physical environment with simulator")
+    parser.add_argument('--server-address', type=str, default="localhost", help="Server setting for physical environment")
+    parser.add_argument('--server-port', type=int, default=8080, help="Server setting for physical environment")
     parser.add_argument('--action-dim', type=int, default=-1)
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--gpu', type=int, default=0)
@@ -83,6 +90,7 @@ def main(parser=argparse.ArgumentParser()):
     parser.add_argument('--critic-lr', type=float, default=1e-3)
     parser.add_argument('--load', type=str, default='')
     parser.add_argument('--steps', type=int, default=10 ** 7)
+    parser.add_argument('--skip-step', type=int, default=0, help="Skip steps for physical simulation")
     parser.add_argument('--n-hidden-channels', type=int, default=300)
     parser.add_argument('--n-hidden-layers', type=int, default=3)
     parser.add_argument('--replay-start-size', type=int, default=5000)
@@ -178,14 +186,24 @@ def main(parser=argparse.ArgumentParser()):
 
     ou_sigma = (action_space.high - action_space.low) * 0.2
     explorer = explorers.AdditiveOU(sigma=ou_sigma)
-    agent = DDPG(model, opt_a, opt_c, rbuf, gamma=args.gamma,
+    if args.skip_step == 0:
+        agent = DDPG(model, opt_a, opt_c, rbuf, gamma=args.gamma,
+                     explorer=explorer, replay_start_size=args.replay_start_size,
+                     target_update_method=args.target_update_method,
+                     target_update_interval=args.target_update_interval,
+                     update_interval=args.update_interval,
+                     soft_update_tau=args.soft_update_tau,
+                     n_times_update=args.n_update_times,
+                     phi=phi, gpu=args.gpu, minibatch_size=args.minibatch_size)
+    else:
+        agent = DDPGStep(model, opt_a, opt_c, rbuf, gamma=args.gamma,
                  explorer=explorer, replay_start_size=args.replay_start_size,
                  target_update_method=args.target_update_method,
                  target_update_interval=args.target_update_interval,
                  update_interval=args.update_interval,
                  soft_update_tau=args.soft_update_tau,
                  n_times_update=args.n_update_times,
-                 phi=phi, gpu=args.gpu, minibatch_size=args.minibatch_size)
+                 phi=phi, gpu=args.gpu, minibatch_size=args.minibatch_size, skip_step=args.skip_step)
 
     if len(args.load) > 0:
         agent.load(args.load)
