@@ -32,10 +32,11 @@ class DDPGStep(DDPG):
         self.logger.debug('t:%s r:%s', self.t, reward)
 
         greedy_action = self.act(obs)
-        action = self.explorer.select_action(self.t, lambda: greedy_action)
 
         if self.t % self.skip_step != 0:
             action = self.last_action
+        else:
+            action = self.explorer.select_action(self.t, lambda: greedy_action)
 
         self.t += 1
 
