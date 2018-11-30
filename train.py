@@ -9,6 +9,7 @@ import sys
 import os
 
 import chainer
+from chainer import functions as F
 from chainer import optimizers
 import gym
 # noinspection PyUnresolvedReferences
@@ -82,6 +83,7 @@ def main(parser=argparse.ArgumentParser()):
     parser.add_argument('--server-address', type=str, default="localhost", help="Server setting for physical environment")
     parser.add_argument('--server-port', type=int, default=8080, help="Server setting for physical environment")
     parser.add_argument('--action-dim', type=int, default=-1)
+    parser.add_argument('--algorithm', type=str, default="DDPG", help="DDPG or TRPO")
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--final-exploration-steps',
@@ -135,6 +137,93 @@ def main(parser=argparse.ArgumentParser()):
 
     timestep_limit = env.spec.tags.get(
         'wrapper_config.TimeLimit.max_episode_steps')
+
+    agent = make_agent(args, env)
+
+    if len(args.load) > 0:
+        agent.load(args.load)
+
+    if args.demo:
+        eval_stats = experiments.eval_performance(
+            env=env,
+            agent=agent,
+            n_runs=args.eval_n_runs,
+            max_episode_len=timestep_limit)
+        print('n_runs: {} mean: {} median: {} stdev {}'.format(
+            args.eval_n_runs, eval_stats['mean'], eval_stats['median'],
+            eval_stats['stdev']))
+    else:
+        experiments.train_agent_with_evaluation(
+            agent=agent, env=env, steps=args.steps,
+            eval_n_runs=args.eval_n_runs, eval_interval=args.eval_interval,
+            outdir=args.outdir,
+            max_episode_len=timestep_limit)
+
+
+def make_agent(args, env):
+    if args.algorithm.upper() == "DDPG":
+        return make_agent_ddpg(args, env)
+    elif args.algorithm.upper() == "TRPO":
+        return make_agent_trpo(args, env)
+    else:
+        raise NotImplementedError()
+
+
+def make_agent_trpo(args, env):
+    obs_space = env.observation_space
+    action_space = env.action_space
+    # Normalize observations based on their empirical mean and variance
+    obs_normalizer = chainerrl.links.EmpiricalNormalization(
+        obs_space.low.size)
+    policy = \
+        chainerrl.policies.FCGaussianPolicyWithStateIndependentCovariance(
+            obs_space.low.size,
+            action_space.low.size,
+            n_hidden_channels=64,
+            n_hidden_layers=2,
+            mean_wscale=0.01,
+            nonlinearity=F.tanh,
+            var_type='diagonal',
+            var_func=lambda x: F.exp(2 * x),  # Parameterize log std
+            var_param_init=0,  # log std = 0 => std = 1
+        )
+    # Use a value function to reduce variance
+    vf = chainerrl.v_functions.FCVFunction(
+        obs_space.low.size,
+        n_hidden_channels=64,
+        n_hidden_layers=2,
+        last_wscale=0.01,
+        nonlinearity=F.tanh,
+    )
+    if args.gpu >= 0:
+        chainer.cuda.get_device_from_id(args.gpu).use()
+        policy.to_gpu(args.gpu)
+        vf.to_gpu(args.gpu)
+        obs_normalizer.to_gpu(args.gpu)
+    # TRPO's policy is optimized via CG and line search, so it doesn't require
+    # a chainer.Optimizer. Only the value function needs it.
+    vf_opt = chainer.optimizers.Adam()
+    vf_opt.setup(vf)
+
+
+    # Hyperparameters in http://arxiv.org/abs/1709.06560
+    agent = chainerrl.agents.TRPO(
+        policy=policy,
+        vf=vf,
+        vf_optimizer=vf_opt,
+        obs_normalizer=obs_normalizer,
+        update_interval=5000,
+        conjugate_gradient_max_iter=20,
+        conjugate_gradient_damping=1e-1,
+        gamma=0.995,
+        lambd=0.97,
+        vf_epochs=5,
+        entropy_coef=0,
+    )
+    return agent
+
+
+def make_agent_ddpg(args, env):
     obs_size = np.asarray(env.observation_space.shape).prod()
     action_space = env.action_space
 
@@ -155,16 +244,6 @@ def main(parser=argparse.ArgumentParser()):
     else:
         q_func.to_cpu()
         pi.to_cpu()
-
-    # draw computation graph
-    fake_obs = xp.asarray(np.zeros(obs_size, dtype=np.float32)[None])
-    fake_action = xp.asarray(np.zeros(action_size, dtype=np.float32)[None])
-    with chainerrl.recurrent.state_reset(q_func):  # The state of the model is reset again after drawing the graph
-        chainerrl.misc.draw_computational_graph([q_func(fake_obs, fake_action)],
-                                                os.path.join(args.outdir, 'model_q_func'))
-    with chainerrl.recurrent.state_reset(pi):  # The state of the model is reset again after drawing the graph
-        chainerrl.misc.draw_computational_graph([pi(fake_obs)], os.path.join(args.outdir, 'model_policy'))
-
     model = DDPGModel(q_func=q_func, policy=pi)
     opt_a = optimizers.Adam(alpha=args.actor_lr)
     opt_c = optimizers.Adam(alpha=args.critic_lr)
@@ -197,32 +276,14 @@ def main(parser=argparse.ArgumentParser()):
                      phi=phi, gpu=args.gpu, minibatch_size=args.minibatch_size)
     else:
         agent = DDPGStep(model, opt_a, opt_c, rbuf, gamma=args.gamma,
-                 explorer=explorer, replay_start_size=args.replay_start_size,
-                 target_update_method=args.target_update_method,
-                 target_update_interval=args.target_update_interval,
-                 update_interval=args.update_interval,
-                 soft_update_tau=args.soft_update_tau,
-                 n_times_update=args.n_update_times,
-                 phi=phi, gpu=args.gpu, minibatch_size=args.minibatch_size, skip_step=args.skip_step)
-
-    if len(args.load) > 0:
-        agent.load(args.load)
-
-    if args.demo:
-        eval_stats = experiments.eval_performance(
-            env=env,
-            agent=agent,
-            n_runs=args.eval_n_runs,
-            max_episode_len=timestep_limit)
-        print('n_runs: {} mean: {} median: {} stdev {}'.format(
-            args.eval_n_runs, eval_stats['mean'], eval_stats['median'],
-            eval_stats['stdev']))
-    else:
-        experiments.train_agent_with_evaluation(
-            agent=agent, env=env, steps=args.steps,
-            eval_n_runs=args.eval_n_runs, eval_interval=args.eval_interval,
-            outdir=args.outdir,
-            max_episode_len=timestep_limit)
+                         explorer=explorer, replay_start_size=args.replay_start_size,
+                         target_update_method=args.target_update_method,
+                         target_update_interval=args.target_update_interval,
+                         update_interval=args.update_interval,
+                         soft_update_tau=args.soft_update_tau,
+                         n_times_update=args.n_update_times,
+                         phi=phi, gpu=args.gpu, minibatch_size=args.minibatch_size, skip_step=args.skip_step)
+    return agent
 
 
 if __name__ == '__main__':
