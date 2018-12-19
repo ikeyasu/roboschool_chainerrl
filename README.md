@@ -18,7 +18,7 @@ How to Run
 On Docker instance (nvidia-docker2)
 
 ```
-$ docker run --runtime=nvidia -it -p 6080:6080 ikeyasu/roboschool:latest
+$ docker run --runtime=nvidia -it -p 6080:6080 ikeyasu/reinforcement-learning:latest
 ```
 
 You can see screen on http://localhost:6080
