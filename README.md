@@ -15,10 +15,14 @@ Demo
 How to Run
 ----------
 
-On Docker instance (nvidia-docker2)
+On Docker instance (Using nvidia-docker2. You need GPU)
 
 ```
 $ docker run --runtime=nvidia -it -p 6080:6080 ikeyasu/reinforcement-learning:latest
+```
+
+```
+$ docker run --it -p 6080:6080 ikeyasu/reinforcement-learning:cpu
 ```
 
 You can see screen on http://localhost:6080
