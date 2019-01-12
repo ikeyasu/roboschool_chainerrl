@@ -26,7 +26,7 @@ class RoboschoolForwardWalkerServo(SharedMemoryClientEnv):
         self.camera_follow = 0
 
     def create_single_player_scene(self):
-        return CustomStadiumScene(gravity=9.8, timestep=0.0165/4, frame_skip=4)
+        return CustomStadiumScene(gravity=9.8, timestep=0.0165/4 * 2, frame_skip=4)
 
     def robot_specific_reset(self):
         for j in self.ordered_joints:
@@ -50,7 +50,7 @@ class RoboschoolForwardWalkerServo(SharedMemoryClientEnv):
             #j.set_motor_torque( self.power*j.power_coef*float(np.clip(a[n], -1, +1)) )
             lower, upper = j.limits()[0:2]
             #j.set_servo_target(self.power*j.power_coef*float(np.clip(a[n], -1, +1)), 0.1, 0.1, 1)
-            j.set_servo_target(float(np.clip(a[n], lower, upper)), 0.1, 3.0, 40)
+            j.set_servo_target(float(np.clip(a[n], lower, upper)), 2.5, 1.1, 40)
 
     def calc_state(self):
         j = np.array([j.current_relative_position() for j in self.ordered_joints], dtype=np.float32).flatten()
