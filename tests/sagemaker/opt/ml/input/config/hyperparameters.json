@@ -2,7 +2,7 @@
 "gpu": -1,
 "steps": 10,
 "mjcf": "/opt/roboschool_chainerrl/env/ant_simple.xml",
- "action-dim": 8,
+"action-dim": 8,
 "skip-step": 25,
 "algorithm": "TRPO"
 }
