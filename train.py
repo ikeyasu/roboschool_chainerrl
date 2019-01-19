@@ -76,6 +76,7 @@ def main(parser=argparse.ArgumentParser()):
     logging.basicConfig(level=logging.WARN)
 
     parser.add_argument('--outdir', type=str, default='out')
+    parser.add_argument('--save', type=str)
     parser.add_argument('--env', type=str, default='RoboschoolAnt-v1')
     parser.add_argument('--urdf', type=str, default=None)
     parser.add_argument('--mjcf', type=str, default=None, help="MuJoCo XML model")
@@ -158,6 +159,8 @@ def main(parser=argparse.ArgumentParser()):
             eval_n_runs=args.eval_n_runs, eval_interval=args.eval_interval,
             outdir=args.outdir,
             max_episode_len=timestep_limit)
+        if args.save is not None:
+            agent.save(args.save)
 
 
 def make_agent(args, env):

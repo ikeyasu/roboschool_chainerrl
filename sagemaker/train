@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+import json
+import os
+import sys
+import traceback
+import subprocess
+
+PREFIX = '/opt/ml/'
+
+OUTPUT_PATH = os.path.join(PREFIX, 'output/data')
+PARAM_PATH = os.path.join(PREFIX, 'input/config/hyperparameters.json')
+MODEL_PATH = os.path.join(PREFIX, 'model')
+REPO_PATH = '/opt/roboschool_chainerrl'
+
+
+def _train():
+    with open(PARAM_PATH, 'r') as tc:
+        training_params = json.load(tc)
+        command = [
+            'python3', '{}/train.py'.format(REPO_PATH),
+            '--outdir', OUTPUT_PATH , '--save', MODEL_PATH]
+        for key, value in training_params.items():
+            command.append('--{}'.format(key))
+            command.append(str(value))
+        print(command)
+        res = subprocess.run(command, stdout=subprocess.PIPE, check=True)
+        print(res.stdout.decode('ASCII'))
+
+
+def train():
+    print('Starting the training.')
+    try:
+        _train()
+    except Exception as e:
+        # Write out an error file. This will be returned as the failureReason in the
+        # DescribeTrainingJob result.
+        trc = traceback.format_exc()
+        with open(os.path.join(OUTPUT_PATH, 'failure'), 'w') as s:
+            s.write('Exception during training: ' + str(e) + '\n' + trc)
+        # Printing this causes the exception to be in the training job logs, as well.
+        print('Exception during training: ' + str(e) + '\n' + trc)
+        # A non-zero exit code causes the training job to be marked as Failed.
+        sys.exit(255)
+
+if __name__ == '__main__':
+    train()
+
+    # A zero exit code causes the job to be marked a Succeeded.
+    sys.exit(0)
