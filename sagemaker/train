@@ -7,7 +7,7 @@ import subprocess
 
 PREFIX = '/opt/ml/'
 
-OUTPUT_PATH = os.path.join(PREFIX, 'output')
+OUTPUT_PATH = os.path.join(PREFIX, 'output/data')
 PARAM_PATH = os.path.join(PREFIX, 'input/config/hyperparameters.json')
 MODEL_PATH = os.path.join(PREFIX, 'model')
 REPO_PATH = '/opt/roboschool_chainerrl'
