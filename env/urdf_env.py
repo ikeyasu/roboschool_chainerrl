@@ -32,12 +32,12 @@ def sin_action(old_rads):
     return a, rads
 
 
-def _robo_init(self, model_urdf, robot_name, action_dim):
+def _robo_init(self, model_urdf, robot_name, action_dim, obs_dim=16):
     RoboschoolForwardWalkerServo.__init__(self, power=0.30)
     RoboschoolUrdfEnv.__init__(self,
                                model_urdf,
                                robot_name,
-                               action_dim=action_dim, obs_dim=16, #TODO 70??
+                               action_dim=action_dim, obs_dim=obs_dim,
                                fixed_base=False,
                                self_collision=True)
 
@@ -63,11 +63,11 @@ def _alive_bonus(self, z, pitch):
     return +1 if z > 0.1 else -1  # 0.1 is position of base_link
 
 
-def make(model_urdf, robot_name, footlist, action_dim):
+def make(model_urdf, robot_name, footlist, action_dim, obs_dim):
     # env = gym.make("RoboschoolHumanoidFlagrun-v1")
     robot = type("Robo", (RoboschoolForwardWalkerServo, RoboschoolUrdfEnv,), {
         "foot_list": footlist,
-        "__init__": lambda self: _robo_init(self, model_urdf, robot_name, action_dim),
+        "__init__": lambda self: _robo_init(self, model_urdf, robot_name, action_dim, obs_dim),
         "alive_bonus": _alive_bonus,
         "robot_specific_reset": _robot_specific_reset,
         "set_initial_orientation": _set_initial_orientation

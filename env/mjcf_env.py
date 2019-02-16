@@ -31,9 +31,9 @@ def sin_action(old_rads):
     return a, rads
 
 
-def _robo_init(self, model_xml, robot_name, action_dim):
+def _robo_init(self, model_xml, robot_name, action_dim, obs_dim):
     RoboschoolForwardWalkerServo.__init__(self, power=0.30)
-    RoboschoolMujocoXmlEnv.__init__(self, model_xml, robot_name, action_dim=action_dim, obs_dim=24)
+    RoboschoolMujocoXmlEnv.__init__(self, model_xml, robot_name, action_dim=action_dim, obs_dim=obs_dim)
 
 
 def _robot_specific_reset(self):
@@ -100,11 +100,11 @@ def _alive_bonus(self, z, pitch):
     return +1 if z > 0.1 else -1  # 0.1 is position of base_link
 
 
-def make(model_xml, robot_name, footlist, action_dim):
+def make(model_xml, robot_name, footlist, action_dim, obs_dim):
     # env = gym.make("RoboschoolHumanoidFlagrun-v1")
     robot = type("Robo", (RoboschoolForwardWalkerServo, RoboschoolMujocoXmlEnv,), {
         "foot_list": footlist,
-        "__init__": lambda self: _robo_init(self, model_xml, robot_name, action_dim),
+        "__init__": lambda self: _robo_init(self, model_xml, robot_name, action_dim, obs_dim),
         "alive_bonus": _alive_bonus,
         #"_reset": _reset,
         "robot_specific_reset": _robot_specific_reset,

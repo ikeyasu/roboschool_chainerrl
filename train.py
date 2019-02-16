@@ -36,14 +36,13 @@ xp = np
 
 
 def make_env(args):
+    footlist = [] if args.foot_list is None else args.foot_list
     if args.urdf:
-        # TODO: foot_list
         env = urdf_env.make(model_urdf=os.path.abspath(args.urdf),
-                            robot_name="base_link", footlist=[], action_dim=args.action_dim)
+                            robot_name="base_link", footlist=[], action_dim=args.action_dim, obs_dim=args.obs_dim)
     elif args.mjcf:
-        # TODO: foot_list
         env = mjcf_env.make(model_xml=os.path.abspath(args.mjcf),
-                            robot_name="torso", footlist=[], action_dim=args.action_dim)
+                            robot_name="torso", footlist=footlist, action_dim=args.action_dim, obs_dim=args.obs_dim)
     else:
         env = gym.make(args.env)
 
@@ -80,10 +79,12 @@ def main(parser=argparse.ArgumentParser()):
     parser.add_argument('--env', type=str, default='RoboschoolAnt-v1')
     parser.add_argument('--urdf', type=str, default=None)
     parser.add_argument('--mjcf', type=str, default=None, help="MuJoCo XML model")
+    parser.add_argument('--foot-obj', '-f', nargs='*', type=str, dest='foot_list', default=None, help="foot list")
     parser.add_argument('--physical-with-sim', action='store_true', help="Physical environment with simulator")
     parser.add_argument('--server-address', type=str, default="localhost", help="Server setting for physical environment")
     parser.add_argument('--server-port', type=int, default=8080, help="Server setting for physical environment")
     parser.add_argument('--action-dim', type=int, default=-1)
+    parser.add_argument('--obs-dim', type=int, default=-1)
     parser.add_argument('--algorithm', type=str, default="DDPG", help="DDPG or TRPO")
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--gpu', type=int, default=0)
@@ -115,11 +116,11 @@ def main(parser=argparse.ArgumentParser()):
     args = parser.parse_args()
 
     if args.urdf is not None:
-        if args.action_dim <= 0:
-            raise Exception("--action-dim is necessary when using --urdf")
+        if args.action_dim <= 0 or args.obs_dim <= 0:
+            raise Exception("--action-dim and --obs-dim are necessary when using --urdf")
     if args.mjcf is not None:
-        if args.action_dim <= 0:
-            raise Exception("--action-dim is necessary when using --mjcf")
+        if args.action_dim <= 0 or args.obs_dim <= 0:
+            raise Exception("--action-dim and --obs-dim are necessary when using --mjcf")
 
     if args.gpu > -1:
         global xp
