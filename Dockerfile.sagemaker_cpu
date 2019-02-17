@@ -1,0 +1,50 @@
+ARG FROM_IMAGE
+FROM $FROM_IMAGE
+MAINTAINER ikeyasu <ikeyasu@gmail.com>
+
+WORKDIR /opt
+
+# Roboschool
+RUN apt-get update && apt-get install -y \
+      git cmake ffmpeg pkg-config \
+      qtbase5-dev libqt5opengl5-dev libassimp-dev \
+      libpython3.5-dev libboost-python-dev libtinyxml-dev libboost-all-dev \
+    && apt-get clean && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* \
+    && git clone --depth 1 https://github.com/olegklimov/bullet3 -b roboschool_self_collision \
+    && git clone --depth 1 https://github.com/openai/roboschool
+
+ENV ROBOSCHOOL_PATH /opt/roboschool
+
+RUN mkdir -p /opt/bullet3/build \
+    && cd /opt/bullet3/build \
+    && cmake -DBUILD_SHARED_LIBS=ON -DUSE_DOUBLE_PRECISION=1 \
+       -DCMAKE_INSTALL_PREFIX:PATH=${ROBOSCHOOL_PATH}/roboschool/cpp-household/bullet_local_install \
+       -DBUILD_CPU_DEMOS=OFF -DBUILD_BULLET2_DEMOS=OFF \
+       -DBUILD_EXTRAS=OFF  -DBUILD_UNIT_TESTS=OFF \
+       -DBUILD_CLSOCKET=OFF -DBUILD_ENET=OFF \
+       -DBUILD_OPENGL3_DEMOS=OFF .. \
+    && make -j4\
+    && make install
+
+RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
+    python get-pip.py && \
+    rm get-pip.py
+
+# "cpp_household.so" is supposed to be compiled by `pip install`, it hasn't by unknown reason.
+# For workaround, the following steps are compiling it directly.
+RUN ln -s /usr/lib/x86_64-linux-gnu/libboost_python-py35.so /usr/lib/x86_64-linux-gnu/libboost_python3.so
+ENV CPLUS_INCLUDE_PATH /usr/include/python3.5m/
+ENV PKG_CONFIG_PATH ${ROBOSCHOOL_PATH}/roboschool/cpp-household/bullet_local_install/lib/pkgconfig/
+RUN cd ${ROBOSCHOOL_PATH}/roboschool/cpp-household && make clean && make -j4 dirs ../cpp_household.so
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/roboschool/roboschool/cpp-household/bullet_local_install/lib/
+
+RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
+    python get-pip.py && \
+    rm get-pip.py
+RUN pip install --upgrade pip setuptools
+RUN pip install -v -e ${ROBOSCHOOL_PATH} \
+    && ldconfig
+
+# Test
+RUN python -c "import roboschool;"
+

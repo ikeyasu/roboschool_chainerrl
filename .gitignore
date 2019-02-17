@@ -1,9 +1,12 @@
 /demo
 /out
 /debug_out
+/debug
 /.idea
 *~
 __pycache__
 /tests/sagemaker/opt/ml/output/
 /tests/sagemaker/opt/ml/model/
 /tmp
+/docker_repository_name
+.DS_Store

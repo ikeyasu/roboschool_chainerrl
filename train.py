@@ -33,6 +33,7 @@ from agents.ddpg_step import DDPGStep
 from env import urdf_env, mjcf_env, servo_env
 
 xp = np
+SM = 'SM_MODEL_DIR' in os.environ
 
 
 def make_env(args):
@@ -79,7 +80,7 @@ def main(parser=argparse.ArgumentParser()):
     parser.add_argument('--env', type=str, default='RoboschoolAnt-v1')
     parser.add_argument('--urdf', type=str, default=None)
     parser.add_argument('--mjcf', type=str, default=None, help="MuJoCo XML model")
-    parser.add_argument('--foot-obj', '-f', nargs='*', type=str, dest='foot_list', default=None, help="foot list")
+    parser.add_argument('--foot-list', nargs='*', type=str, default=None, help="foot list")
     parser.add_argument('--physical-with-sim', action='store_true', help="Physical environment with simulator")
     parser.add_argument('--server-address', type=str, default="localhost", help="Server setting for physical environment")
     parser.add_argument('--server-port', type=int, default=8080, help="Server setting for physical environment")
@@ -113,6 +114,11 @@ def main(parser=argparse.ArgumentParser()):
     parser.add_argument('--demo', action='store_true')
     parser.add_argument('--monitor', action='store_true')
     parser.add_argument('--reward-scale-factor', type=float, default=1e-2)
+
+    # Required for sagemaker
+    parser.add_argument('--output-data-dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'] if SM else None)
+    parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'] if SM else None)
+
     args = parser.parse_args()
 
     if args.urdf is not None:
@@ -128,12 +134,19 @@ def main(parser=argparse.ArgumentParser()):
         import cupy
         xp = cupy
 
+    if args.output_data_dir is not None:
+        args.outdir = args.output_data_dir
+
     args.outdir = experiments.prepare_output_dir(
         args, args.outdir, argv=sys.argv)
     print('Output files are saved in {}'.format(args.outdir))
 
     if args.seed is not None:
         misc.set_random_seed(args.seed)
+
+    # because the argument may be concatinated (e.g sagemaker's hyperparameter)
+    if ' ' in ''.join(args.foot_list):
+        args.foot_list = ' '.join(args.foot_list).split()
 
     env = make_env(args)
 
@@ -287,6 +300,8 @@ def make_agent_ddpg(args, env):
                          soft_update_tau=args.soft_update_tau,
                          n_times_update=args.n_update_times,
                          phi=phi, gpu=args.gpu, minibatch_size=args.minibatch_size, skip_step=args.skip_step)
+        if args.model_dir is not None:
+            agent.save(args.model_dir)
     return agent
 
 
