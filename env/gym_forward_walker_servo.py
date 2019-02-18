@@ -26,7 +26,7 @@ class RoboschoolForwardWalkerServo(SharedMemoryClientEnv):
         self.camera_follow = 0
 
     def create_single_player_scene(self):
-        return CustomStadiumScene(gravity=9.8, timestep=0.0165/4 * 2, frame_skip=4)
+        return CustomStadiumScene(gravity=9.8, timestep=0.0165/4, frame_skip=4)
 
     def robot_specific_reset(self):
         for j in self.ordered_joints:
