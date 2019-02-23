@@ -30,6 +30,7 @@ from chainerrl import misc
 from chainerrl import replay_buffer
 
 from agents.ddpg_step import DDPGStep
+from agents.trpo_step import TRPOStep
 from env import urdf_env, mjcf_env, servo_env
 
 xp = np
@@ -222,21 +223,37 @@ def make_agent_trpo(args, env):
     vf_opt = chainer.optimizers.Adam()
     vf_opt.setup(vf)
 
-
     # Hyperparameters in http://arxiv.org/abs/1709.06560
-    agent = chainerrl.agents.TRPO(
-        policy=policy,
-        vf=vf,
-        vf_optimizer=vf_opt,
-        obs_normalizer=obs_normalizer,
-        update_interval=5000,
-        conjugate_gradient_max_iter=20,
-        conjugate_gradient_damping=1e-1,
-        gamma=0.995,
-        lambd=0.97,
-        vf_epochs=5,
-        entropy_coef=0,
-    )
+    if args.skip_step == 0:
+        agent = chainerrl.agents.TRPO(
+            policy=policy,
+            vf=vf,
+            vf_optimizer=vf_opt,
+            obs_normalizer=obs_normalizer,
+            update_interval=5000,
+            conjugate_gradient_max_iter=20,
+            conjugate_gradient_damping=1e-1,
+            gamma=0.995,
+            lambd=0.97,
+            vf_epochs=5,
+            entropy_coef=0,
+        )
+    else:
+        agent = TRPOStep(
+            policy=policy,
+            vf=vf,
+            vf_optimizer=vf_opt,
+            obs_normalizer=obs_normalizer,
+            update_interval=5000,
+            conjugate_gradient_max_iter=20,
+            conjugate_gradient_damping=1e-1,
+            gamma=0.995,
+            lambd=0.97,
+            vf_epochs=5,
+            entropy_coef=0,
+            skip_step=args.skip_step
+        )
+
     return agent
 
 
