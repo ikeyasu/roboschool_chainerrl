@@ -31,14 +31,13 @@ class DDPGStep(DDPG):
 
         self.logger.debug('t:%s r:%s', self.t, reward)
 
+        self.t += 1
+        if self.skip_step > 0 and self.last_action is not None and (self.t - 1) % self.skip_step != 0:
+            return self.last_action
+
         greedy_action = self.act(obs)
 
-        if self.skip_step > 0 and self.last_action is not None and self.t % self.skip_step != 0:
-            action = self.last_action
-        else:
-            action = self.explorer.select_action(self.t, lambda: greedy_action)
-
-        self.t += 1
+        action = self.explorer.select_action(self.t, lambda: greedy_action)
 
         # Update the target network
         if self.t % self.target_update_interval == 0:

@@ -26,6 +26,9 @@ class TRPOStep(TRPO):
         self.skip_step = skip_step
 
     def act_and_train(self, state, reward):
+        self.t += 1
+        if self.skip_step > 0 and self.last_action is not None and (self.t - 1) % self.skip_step != 0:
+            return self.last_action
 
         xp = self.xp
         b_state = batch_states([state], xp, self.phi)
@@ -33,15 +36,12 @@ class TRPOStep(TRPO):
         if self.obs_normalizer:
             b_state = self.obs_normalizer(b_state, update=False)
 
-        if self.skip_step > 0 and self.last_action is not None and self.t % self.skip_step != 0:
-            action = self.last_action
-        else:
-            # action_distrib will be recomputed when computing gradients
-            with chainer.using_config('train', False), chainer.no_backprop_mode():
-                action_distrib = self.policy(b_state)
-                action = chainer.cuda.to_cpu(action_distrib.sample().array)[0]
-                self.entropy_record.append(float(action_distrib.entropy.array))
-            self.logger.debug('action_distrib: %s', action_distrib)
+        # action_distrib will be recomputed when computing gradients
+        with chainer.using_config('train', False), chainer.no_backprop_mode():
+            action_distrib = self.policy(b_state)
+            action = chainer.cuda.to_cpu(action_distrib.sample().array)[0]
+            self.entropy_record.append(float(action_distrib.entropy.array))
+        self.logger.debug('action_distrib: %s', action_distrib)
 
         self.logger.debug('action: %s', action)
 
@@ -55,19 +55,19 @@ class TRPOStep(TRPO):
             })
         self.last_state = state
         self.last_action = action
-        self.t += 1
 
         self._update_if_dataset_is_ready()
 
         return action
 
     def act(self, state):
+        self.t += 1
+        if self.skip_step > 0 and self.last_action is not None and (self.t - 1) % self.skip_step != 0:
+            return self.last_action
         xp = self.xp
         b_state = batch_states([state], xp, self.phi)
         if self.obs_normalizer:
             b_state = self.obs_normalizer(b_state, update=False)
-        if self.skip_step > 0 and self.last_action is not None and self.t % self.skip_step != 0:
-            return self.last_action
         with chainer.using_config('train', False), chainer.no_backprop_mode():
             action_distrib = self.policy(b_state)
             if self.act_deterministically:
