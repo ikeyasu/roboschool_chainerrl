@@ -163,17 +163,18 @@ def main(parser=argparse.ArgumentParser()):
         eval_stats = experiments.eval_performance(
             env=env,
             agent=agent,
-            n_runs=args.eval_n_runs,
+            n_episodes=args.eval_n_runs,
             max_episode_len=timestep_limit)
         print('n_runs: {} mean: {} median: {} stdev {}'.format(
             args.eval_n_runs, eval_stats['mean'], eval_stats['median'],
             eval_stats['stdev']))
     else:
+        # noinspection PyTypeChecker
         experiments.train_agent_with_evaluation(
             agent=agent, env=env, steps=args.steps,
-            eval_n_runs=args.eval_n_runs, eval_interval=args.eval_interval,
-            outdir=args.outdir,
-            max_episode_len=timestep_limit)
+            eval_n_episodes=args.eval_n_runs, eval_interval=args.eval_interval,
+            outdir=args.outdir, eval_n_steps=None,
+            train_max_episode_len=timestep_limit)
         if args.save is not None:
             agent.save(args.save)
 
