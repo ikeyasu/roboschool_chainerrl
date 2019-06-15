@@ -13,7 +13,6 @@ from chainer import functions as F
 from chainer import optimizers
 import gym
 # noinspection PyUnresolvedReferences
-import roboschool
 from chainerrl.policies import FCDeterministicPolicy
 from chainerrl.q_functions import FCSAQFunction
 
@@ -31,7 +30,8 @@ from chainerrl import replay_buffer
 
 from agents.ddpg_step import DDPGStep
 from agents.trpo_step import TRPOStep
-from env import urdf_env, mjcf_env, servo_env
+from env import roboschool_urdf_env, roboschool_mjcf_env, servo_env
+from env import pybullet_mjcf_env
 
 xp = np
 SM = 'SM_MODEL_DIR' in os.environ
@@ -39,12 +39,18 @@ SM = 'SM_MODEL_DIR' in os.environ
 
 def make_env(args):
     footlist = [] if args.foot_list is None else args.foot_list
-    if args.urdf:
-        env = urdf_env.make(model_urdf=os.path.abspath(args.urdf),
-                            robot_name="base_link", footlist=[], action_dim=args.action_dim, obs_dim=args.obs_dim)
-    elif args.mjcf:
-        env = mjcf_env.make(model_xml=os.path.abspath(args.mjcf),
-                            robot_name="torso", footlist=footlist, action_dim=args.action_dim, obs_dim=args.obs_dim)
+    if args.urdf and not args.bullet:
+        env = roboschool_urdf_env.make(model_urdf=os.path.abspath(args.urdf),
+                                       robot_name="base_link", footlist=[], action_dim=args.action_dim, obs_dim=args.obs_dim)
+    elif args.mjcf and not args.bullet:
+        env = roboschool_mjcf_env.make(model_xml=os.path.abspath(args.mjcf),
+                                       robot_name="torso", footlist=footlist, action_dim=args.action_dim, obs_dim=args.obs_dim)
+    elif args.urdf and args.bullet:
+        raise Exception("No implemented Yet")
+    elif args.mjcf and args.bullet:
+        env = pybullet_mjcf_env.make(model_xml=os.path.abspath(args.mjcf),
+                                       robot_name="torso", footlist=footlist, action_dim=args.action_dim,
+                                       obs_dim=args.obs_dim, render=args.render)
     else:
         env = gym.make(args.env)
 
@@ -112,6 +118,7 @@ def main(parser=argparse.ArgumentParser()):
     parser.add_argument('--gamma', type=float, default=0.995)
     parser.add_argument('--minibatch-size', type=int, default=200)
     parser.add_argument('--render', action='store_true')
+    parser.add_argument('--bullet', action='store_true')
     parser.add_argument('--demo', action='store_true')
     parser.add_argument('--monitor', action='store_true')
     parser.add_argument('--reward-scale-factor', type=float, default=1e-2)
@@ -134,6 +141,9 @@ def main(parser=argparse.ArgumentParser()):
         # noinspection PyUnresolvedReferences
         import cupy
         xp = cupy
+    if args.bullet:
+        print("If you face error of \"No module named 'robot_bases'\", please refer to "
+              "https://gist.github.com/ikeyasu/81d4178ce18ba2b1463e7c9dc079a4b3")
 
     if args.output_data_dir is not None:
         args.outdir = args.output_data_dir
