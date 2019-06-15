@@ -9,7 +9,7 @@ from sagemaker.chainer.estimator import Chainer
 IMAGE = '398271760466.dkr.ecr.ap-northeast-1.amazonaws.com/roboschool_chainerrl:cpu'
 DEFAULT_INSTANCE_TYPE = 'ml.m4.4xlarge'
 DEFAULT_REGION = 'ap-northeast-1'
-DEFAULT_RUNTIME = 24 * 60 * 60  # 1day
+DEFAULT_RUNTIME = 24 * 60 * 60 * 3  # 3day
 
 
 def main(parser=argparse.ArgumentParser()):
@@ -32,7 +32,7 @@ def main(parser=argparse.ArgumentParser()):
                        'mjcf': 'env/ant_simple.xml',
                        'action-dim': 8,
                        'obs-dim': 28,
-                       'skip-step': 25,
+                       'skip-step': 10,
                        'algorithm': 'TRPO',
                        'foot-list': 'right_back_foot left_back_foot front_right_foot front_left_foot'
                        }
@@ -45,7 +45,7 @@ def main(parser=argparse.ArgumentParser()):
                                 train_instance_count=1,
                                 train_instance_type='local' if args.local_mode else args.instance_type,
                                 hyperparameters=hyperparameters,
-                                base_job_name='roboschool-chainerrl',
+                                base_job_name='roboschool-TRPO-skipstep10-continue-1',
                                 train_max_run=args.max_runtime)
     chainer_estimator.fit(wait=args.local_mode)
 

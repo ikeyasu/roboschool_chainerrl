@@ -7,7 +7,7 @@ from gym.envs.registration import register
 from roboschool import cpp_household
 from roboschool.gym_mujoco_xml_env import RoboschoolMujocoXmlEnv
 
-from env.gym_forward_walker_servo import RoboschoolForwardWalkerServo
+from env.roboschool_gym_forward_walker_servo import RoboschoolForwardWalkerServo
 
 
 def random_action(action_space):
@@ -39,7 +39,7 @@ def _robo_init(self, model_xml, robot_name, action_dim, obs_dim):
 def _robot_specific_reset(self):
     RoboschoolForwardWalkerServo.robot_specific_reset(self)
     self.set_initial_orientation(yaw_center=0, yaw_random_spread=np.pi)
-    #self.head = self.parts["head"]
+    # self.head = self.parts["head"]
 
 
 def _reset(self):
@@ -106,7 +106,7 @@ def make(model_xml, robot_name, footlist, action_dim, obs_dim):
         "foot_list": footlist,
         "__init__": lambda self: _robo_init(self, model_xml, robot_name, action_dim, obs_dim),
         "alive_bonus": _alive_bonus,
-        #"_reset": _reset,
+        # "_reset": _reset,
         "robot_specific_reset": _robot_specific_reset,
         "set_initial_orientation": _set_initial_orientation
     })

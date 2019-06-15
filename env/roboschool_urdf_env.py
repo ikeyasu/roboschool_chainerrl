@@ -8,7 +8,7 @@ from roboschool import cpp_household
 from roboschool.gym_forward_walker import RoboschoolForwardWalker
 from roboschool.gym_urdf_robot_env import RoboschoolUrdfEnv
 
-from env.gym_forward_walker_servo import RoboschoolForwardWalkerServo
+from env.roboschool_gym_forward_walker_servo import RoboschoolForwardWalkerServo
 
 
 def random_action(action_space):
@@ -45,7 +45,7 @@ def _robo_init(self, model_urdf, robot_name, action_dim, obs_dim=16):
 def _robot_specific_reset(self):
     RoboschoolForwardWalkerServo.robot_specific_reset(self)
     self.set_initial_orientation(yaw_center=np.math.pi / 2.0, yaw_random_spread=np.pi)
-    #self.head = self.parts["head"]
+    # self.head = self.parts["head"]
 
 
 def _set_initial_orientation(self, yaw_center, yaw_random_spread):
