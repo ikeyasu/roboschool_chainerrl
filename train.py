@@ -143,7 +143,7 @@ def main(parser=argparse.ArgumentParser()):
         xp = cupy
     if args.bullet:
         print("If you face error of \"No module named 'robot_bases'\", please refer to "
-              "https://gist.github.com/ikeyasu/81d4178ce18ba2b1463e7c9dc079a4b3")
+              "https://git.io/fj2bX")
 
     if args.output_data_dir is not None:
         args.outdir = args.output_data_dir
