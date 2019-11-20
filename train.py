@@ -30,8 +30,6 @@ from chainerrl import replay_buffer
 
 from agents.ddpg_step import DDPGStep
 from agents.trpo_step import TRPOStep
-from env import roboschool_urdf_env, roboschool_mjcf_env, servo_env
-from env import pybullet_mjcf_env
 
 xp = np
 SM = 'SM_MODEL_DIR' in os.environ
@@ -40,14 +38,17 @@ SM = 'SM_MODEL_DIR' in os.environ
 def make_env(args):
     footlist = [] if args.foot_list is None else args.foot_list
     if args.urdf and not args.bullet:
+        from env import roboschool_mjcf_env
         env = roboschool_urdf_env.make(model_urdf=os.path.abspath(args.urdf),
                                        robot_name="base_link", footlist=[], action_dim=args.action_dim, obs_dim=args.obs_dim)
     elif args.mjcf and not args.bullet:
+        from env import roboschool_mjcf_env
         env = roboschool_mjcf_env.make(model_xml=os.path.abspath(args.mjcf),
                                        robot_name="torso", footlist=footlist, action_dim=args.action_dim, obs_dim=args.obs_dim)
     elif args.urdf and args.bullet:
         raise Exception("No implemented Yet")
     elif args.mjcf and args.bullet:
+        from env import pybullet_mjcf_env
         env = pybullet_mjcf_env.make(model_xml=os.path.abspath(args.mjcf),
                                        robot_name="torso", footlist=footlist, action_dim=args.action_dim,
                                        obs_dim=args.obs_dim, render=args.render)
@@ -55,6 +56,7 @@ def make_env(args):
         env = gym.make(args.env)
 
     if args.physical_with_sim:
+        from env import servo_env
         env = servo_env.make(env, (args.server_address, args.server_port))
 
     def clip_action_filter(a):
