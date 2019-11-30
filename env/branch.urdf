@@ -1,0 +1,100 @@
+<?xml version="1.0"?><robot name="branch">
+
+    <!-- servo1 -->
+    <link name="base_link">
+        <inertial>
+            <mass value="10"/>
+            <inertia ixx="0.4" ixy="0.0" ixz="0.0" iyy="0.4" iyz="0.0" izz="0.2"/>
+        </inertial>
+        <visual>
+            <geometry>
+                <box size=".22 .358 .196"/>
+            </geometry>
+            <origin rpy="1.57 0 0" xyz="0 0 0"/>
+            <material name="blue">
+                <color rgba="0.2 0.2 1 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <box size=".22 .358 .196"/>
+            </geometry>
+            <origin rpy="1.57 0 0" xyz="0 0 0"/>
+            <material name="blue">
+                <color rgba="0.2 0.2 1 1"/>
+            </material>
+        </collision>
+    </link>
+
+    <link name="cylinder1">
+        <inertial>
+            <mass value="10"/>
+            <inertia ixx="0.4" ixy="0.0" ixz="0.0" iyy="0.4" iyz="0.0" izz="0.2"/>
+        </inertial>
+        <visual>
+            <geometry>
+                <cylinder length="0.09" radius="0.05"/>
+            </geometry>
+            <origin rpy="0 1.57 0" xyz="0.15 0 -0.06"/>
+            <material name="blue">
+                <color rgba="0.2 0.2 1 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder length="0.09" radius="0.05"/>
+            </geometry>
+            <origin rpy="0 1.57 0" xyz="0.15 0 -0.06"/>
+            <material name="blue">
+                <color rgba="0.2 0.2 1 1"/>
+            </material>
+        </collision>
+    </link>
+
+    <link name="leg1">
+        <inertial>
+            <mass value="10"/>
+            <inertia ixx="0.4" ixy="0.0" ixz="0.0" iyy="0.4" iyz="0.0" izz="0.2"/>
+        </inertial>
+        <visual>
+            <geometry>
+                <box size=".82 .15 .02"/>
+            </geometry>
+            <origin rpy="0 1.57 0" xyz="0.205 0.0 0.0"/>
+            <material name="white">
+                <color rgba="1 1 1 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <box size=".82 .15 .02"/>
+            </geometry>
+            <origin rpy="0 1.57 0" xyz="0.205 0.0 0.0"/>
+            <material name="white">
+                <color rgba="1 1 1 1"/>
+            </material>
+        </collision>
+    </link>
+
+
+    <joint name="ignore_cylinder1_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="cylinder1"/>
+    </joint>
+
+    <joint name="leg1_joint" type="revolute">
+        <parent link="cylinder1"/>
+        <child link="leg1"/>
+        <origin rpy="0 0 0" xyz="0 0 -0.06"/>
+        <limit lower="-1.05" upper="1.05" effort="10" velocity="3"/>
+        <!--
+        <limit lower="-1.57079633" upper="1.57079633" effort="10" velocity="3"/>
+        <limit lower="-1.05" upper="1.05" effort="10" velocity="3"/>
+        <limit lower="-3.146" upper="3.146" effort="10" velocity="3"/>
+        -->
+        <axis xyz="1 0 0"/>
+    </joint>
+
+
+</robot>
+

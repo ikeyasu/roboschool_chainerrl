@@ -40,13 +40,16 @@ def make_env(args):
     if args.urdf and not args.bullet:
         from env import roboschool_mjcf_env
         env = roboschool_urdf_env.make(model_urdf=os.path.abspath(args.urdf),
-                                       robot_name="base_link", footlist=[], action_dim=args.action_dim, obs_dim=args.obs_dim)
+                                       robot_name="base_link", footlist=footlist, action_dim=args.action_dim, obs_dim=args.obs_dim)
     elif args.mjcf and not args.bullet:
         from env import roboschool_mjcf_env
         env = roboschool_mjcf_env.make(model_xml=os.path.abspath(args.mjcf),
                                        robot_name="torso", footlist=footlist, action_dim=args.action_dim, obs_dim=args.obs_dim)
     elif args.urdf and args.bullet:
-        raise Exception("No implemented Yet")
+        from env import pybullet_urdf_env
+        env = pybullet_urdf_env.make(model_xml=os.path.abspath(args.urdf),
+                                     robot_name="base_link", footlist=footlist, action_dim=args.action_dim,
+                                     obs_dim=args.obs_dim, render=args.render)
     elif args.mjcf and args.bullet:
         from env import pybullet_mjcf_env
         env = pybullet_mjcf_env.make(model_xml=os.path.abspath(args.mjcf),
